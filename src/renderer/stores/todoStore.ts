@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Todo, TodoStatus } from '@shared/types'
+import { Todo, TodoStatus, SortOption } from '@shared/types'
 
 interface TodoStore {
   todos: Todo[]
@@ -9,6 +9,8 @@ interface TodoStore {
   deleteTodo: (id: string) => void
   addChildTodo: (parentId: string, dateCreated: string) => void
   getTodosByDate: (date: string) => Todo[]
+  getSortedTodos: (date: string, sortOption: SortOption) => Todo[]
+  getTodayWorkTime: (date?: string) => number
   saveTodos: () => void
   loadTodos: () => void
 }
@@ -144,6 +146,49 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
 
   getTodosByDate: (date) => {
     return get().todos.filter(todo => todo.dateCreated === date)
+  },
+
+  getSortedTodos: (date, sortOption) => {
+    const todos = get().todos.filter(todo => todo.dateCreated === date)
+    
+    switch (sortOption) {
+      case 'created':
+        return todos.sort((a, b) => a.order - b.order)
+      
+      case 'recommended':
+        // 일시정지 -> 미진행 -> 완료 순으로 정렬
+        const statusOrder = { 'paused': 0, 'waiting': 1, 'in_progress': 2, 'completed': 3 }
+        return todos.sort((a, b) => {
+          const statusDiff = statusOrder[a.status] - statusOrder[b.status]
+          if (statusDiff !== 0) return statusDiff
+          return a.order - b.order // 같은 상태면 등록순
+        })
+      
+      case 'category':
+        return todos.sort((a, b) => {
+          const categoryA = a.category || 'Z_미분류'
+          const categoryB = b.category || 'Z_미분류'
+          const categoryDiff = categoryA.localeCompare(categoryB)
+          if (categoryDiff !== 0) return categoryDiff
+          return a.order - b.order // 같은 카테고리면 등록순
+        })
+      
+      case 'workTime':
+        return todos.sort((a, b) => {
+          const timeDiff = (b.totalTime || 0) - (a.totalTime || 0)
+          if (timeDiff !== 0) return timeDiff
+          return a.order - b.order // 같은 업무시간이면 등록순
+        })
+      
+      default:
+        return todos.sort((a, b) => a.order - b.order)
+    }
+  },
+
+  getTodayWorkTime: (date?: string) => {
+    const targetDate = date || new Date().toISOString().split('T')[0]
+    const dateTodos = get().todos.filter(todo => todo.dateCreated === targetDate)
+    return dateTodos.reduce((total, todo) => total + (todo.totalTime || 0), 0)
   },
 
   saveTodos: async () => {

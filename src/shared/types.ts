@@ -54,3 +54,5 @@ export interface Category {
   name: string
   color: string // hex color like #FF6B6B
 }
+
+export type SortOption = 'created' | 'recommended' | 'category' | 'workTime'

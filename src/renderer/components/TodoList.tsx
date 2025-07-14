@@ -2,14 +2,16 @@ import React from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TodoItem from './TodoItem'
 import { useTodoStore } from '../stores/todoStore'
+import { SortOption } from '@shared/types'
 
 interface TodoListProps {
   selectedDate: string
+  sortOption: SortOption
 }
 
-function TodoList({ selectedDate }: TodoListProps) {
-  const { todos, getTodosByDate } = useTodoStore()
-  const todosForDate = getTodosByDate(selectedDate)
+function TodoList({ selectedDate, sortOption }: TodoListProps) {
+  const { getSortedTodos } = useTodoStore()
+  const todosForDate = getSortedTodos(selectedDate, sortOption)
   const rootTodos = todosForDate.filter(todo => !todo.parentId)
 
   if (rootTodos.length === 0) {
@@ -35,7 +37,7 @@ function TodoList({ selectedDate }: TodoListProps) {
   return (
     <div className="h-full overflow-y-auto p-6">
       <AnimatePresence>
-        <div className="space-y-3">
+        <div className="space-y-2">
           {rootTodos.map((todo, index) => (
             <motion.div
               key={todo.id}
