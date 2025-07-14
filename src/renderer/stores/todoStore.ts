@@ -13,6 +13,7 @@ interface TodoStore {
   getTodayWorkTime: (date?: string) => number
   saveTodos: () => void
   loadTodos: () => void
+  copyIncompleteTodosFromYesterday: () => void
 }
 
 let nextId = 1
@@ -220,6 +221,63 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     } catch (error) {
       console.error('Failed to load todos:', error)
     }
+  },
+
+  copyIncompleteTodosFromYesterday: () => {
+    // 한국 시간대로 날짜 계산
+    const now = new Date()
+    const today = new Date(now.getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0] // UTC+9
+    const yesterday = new Date(now.getTime() + (9 * 60 * 60 * 1000) - (24 * 60 * 60 * 1000)).toISOString().split('T')[0]
+    
+    console.log('Debug - Today:', today)
+    console.log('Debug - Yesterday:', yesterday)
+    console.log('Debug - All todos:', get().todos.map(t => ({ id: t.id, title: t.title, dateCreated: t.dateCreated, status: t.status })))
+    
+    // 먼저 어제 날짜의 모든 할 일을 확인
+    const allYesterdayTodos = get().todos.filter(todo => todo.dateCreated === yesterday)
+    console.log('Debug - All yesterday todos:', allYesterdayTodos)
+    
+    // 어제의 미완료 할 일 (대기 또는 일시정지 상태)
+    const yesterdayIncompleteTodos = get().todos.filter(todo => 
+      todo.dateCreated === yesterday && 
+      (todo.status === 'waiting' || todo.status === 'paused')
+    )
+    console.log('Debug - Yesterday incomplete todos (all):', yesterdayIncompleteTodos)
+    
+    // 상위 할 일만 (parentId가 없는 것들)
+    const yesterdayTodos = yesterdayIncompleteTodos.filter(todo => !todo.parentId)
+    console.log('Debug - Yesterday incomplete parent todos only:', yesterdayTodos)
+    
+    
+    if (yesterdayTodos.length === 0) {
+      alert('복사할 어제 미완료 업무가 없습니다.')
+      return
+    }
+    
+    const todayTodos = get().todos.filter(todo => todo.dateCreated === today)
+    const maxOrder = todayTodos.length > 0 ? Math.max(...todayTodos.map(t => t.order)) : 0
+    
+    const newTodos = yesterdayTodos.map((todo, index) => ({
+      id: generateId(),
+      title: todo.title,
+      emoji: todo.emoji,
+      description: todo.description,
+      status: 'waiting' as TodoStatus,
+      dateCreated: today,
+      totalTime: 0,
+      children: [],
+      category: todo.category,
+      order: maxOrder + index + 1
+    }))
+    
+    console.log('Debug - New todos to add:', newTodos)
+    
+    set(state => ({ 
+      todos: [...state.todos, ...newTodos] 
+    }))
+    
+    alert(`${newTodos.length}개의 어제 미완료 업무를 복사했습니다.`)
+    get().saveTodos()
   }
 }))
 

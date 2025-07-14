@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { format, addDays, subDays } from 'date-fns'
 import { ko } from 'date-fns/locale/ko'
-import { ChevronLeft, ChevronRight, Clock, ChevronDown } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Clock, ChevronDown, RotateCcw } from 'lucide-react'
 import { motion } from 'framer-motion'
 import TodoList from '../components/TodoList'
 import QuickAddTodo from '../components/QuickAddTodo'
@@ -13,6 +13,7 @@ function TodoView() {
   const [sortOption, setSortOption] = useState<SortOption>('created')
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const getTodayWorkTime = useTodoStore(state => state.getTodayWorkTime)
+  const copyIncompleteTodosFromYesterday = useTodoStore(state => state.copyIncompleteTodosFromYesterday)
 
   const formatTime = (minutes: number) => {
     const hours = Math.floor(minutes / 60)
@@ -115,6 +116,19 @@ function TodoView() {
       {/* 빠른 할 일 추가 */}
       <div className="px-6 pb-3">
         <QuickAddTodo selectedDate={format(selectedDate, 'yyyy-MM-dd')} />
+        
+        {/* 어제 미완료 업무 불러오기 버튼 */}
+        {isToday && (
+          <div className="mt-3">
+            <button
+              onClick={copyIncompleteTodosFromYesterday}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-100/40 hover:bg-blue-100/60 text-blue-700 rounded-lg transition-colors text-sm font-medium"
+            >
+              <RotateCcw size={16} />
+              <span>어제 미완료 업무 불러오기</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 투두 리스트 */}
