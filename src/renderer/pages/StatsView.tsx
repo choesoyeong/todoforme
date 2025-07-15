@@ -134,15 +134,15 @@ function StatsView() {
           transition={{ delay: 0.4 }}
         >
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-purple-100 rounded-2xl">
-              <TrendingUp className="text-purple-600" size={20} />
+            <div className="p-2 bg-coral-100 rounded-2xl">
+              <TrendingUp className="text-coral-600" size={20} />
             </div>
             <span className="text-sm text-gray-600">주요 카테고리</span>
           </div>
           <div className="text-2xl font-bold text-gray-800">
             {currentStats.topCategory}
           </div>
-          <div className="text-sm text-purple-600 mt-1">
+          <div className="text-sm text-coral-600 mt-1">
             📚 열심히 해요!
           </div>
         </motion.div>

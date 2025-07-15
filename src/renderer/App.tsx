@@ -33,9 +33,9 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
+    <div className="flex h-screen bg-gradient-to-br from-coral-50 via-rose-100 to-pink-50">
       {/* 사이드바 */}
-      <div className="w-64 bg-white/50 backdrop-blur-lg border-r border-purple-100/30 p-4 pt-12 drag-region">
+      <div className="w-64 bg-white/50 backdrop-blur-lg border-r border-coral-100/30 p-4 pt-12 drag-region shadow-xl">
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
             🍎 <span>TodoForMe</span>
@@ -53,8 +53,8 @@ function App() {
                 onClick={() => setCurrentView(item.id)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl text-left transition-all ${
                   isActive 
-                    ? 'bg-purple-100/60 text-purple-800 shadow-lg' 
-                    : 'text-gray-600 hover:bg-purple-50/40'
+                    ? 'bg-coral-100/70 text-coral-800 shadow-lg backdrop-blur-sm' 
+                    : 'text-gray-600 hover:bg-coral-50/40'
                 }`}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
@@ -67,7 +67,7 @@ function App() {
         </nav>
 
         <div className="absolute bottom-4 left-4 right-4 no-drag">
-          <div className="bg-purple-50/40 rounded-2xl p-4">
+          <div className="bg-coral-50/50 backdrop-blur-sm rounded-2xl p-4 shadow-md">
             <p className="text-sm text-gray-600 text-center">
               오늘도 화이팅! 💪
             </p>

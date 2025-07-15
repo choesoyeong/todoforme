@@ -82,7 +82,7 @@ function TodoView() {
           <div className="relative" style={{ WebkitAppRegion: 'no-drag' }}>
             <button
               onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className="flex items-center gap-2 px-3 py-2 bg-purple-100/40 rounded-lg hover:bg-purple-100/60 transition-colors text-sm"
+              className="flex items-center gap-2 px-4 py-2 bg-coral-100/40 backdrop-blur-sm rounded-xl hover:bg-coral-100/60 transition-all text-sm shadow-sm"
             >
               <span>{sortOptions.find(opt => opt.value === sortOption)?.emoji}</span>
               <span>{sortOptions.find(opt => opt.value === sortOption)?.label}</span>
@@ -90,7 +90,7 @@ function TodoView() {
             </button>
 
             {showSortDropdown && (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-purple-200 py-1 z-10 min-w-[140px]">
+              <div className="absolute right-0 top-full mt-2 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl border border-coral-200/50 py-2 z-10 min-w-[140px]">
                 {sortOptions.map((option) => (
                   <button
                     key={option.value}
@@ -98,8 +98,8 @@ function TodoView() {
                       setSortOption(option.value)
                       setShowSortDropdown(false)
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-purple-50 flex items-center gap-2 ${
-                      sortOption === option.value ? 'bg-purple-100 text-purple-700' : 'text-gray-700'
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-coral-50/80 flex items-center gap-2 transition-all ${
+                      sortOption === option.value ? 'bg-coral-100/80 text-coral-700 font-medium' : 'text-gray-700'
                     }`}
                   >
                     <span>{option.emoji}</span>
@@ -122,7 +122,7 @@ function TodoView() {
           <div className="mt-3">
             <button
               onClick={copyIncompleteTodosFromYesterday}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-100/40 hover:bg-blue-100/60 text-blue-700 rounded-lg transition-colors text-sm font-medium"
+              className="flex items-center gap-2 px-4 py-2 bg-coral-100/40 backdrop-blur-sm hover:bg-coral-100/60 text-coral-700 rounded-xl transition-all text-sm font-medium shadow-sm hover:shadow-md"
             >
               <RotateCcw size={16} />
               <span>어제 미완료 업무 불러오기</span>

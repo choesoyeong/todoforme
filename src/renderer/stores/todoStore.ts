@@ -255,7 +255,7 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     }
     
     const todayTodos = get().todos.filter(todo => todo.dateCreated === today)
-    const maxOrder = todayTodos.length > 0 ? Math.max(...todayTodos.map(t => t.order)) : 0
+    const minOrder = todayTodos.length > 0 ? Math.min(...todayTodos.map(t => t.order)) : 1
     
     const newTodos = yesterdayTodos.map((todo, index) => ({
       id: generateId(),
@@ -267,7 +267,7 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       totalTime: 0,
       children: [],
       category: todo.category,
-      order: maxOrder + index + 1
+      order: minOrder - yesterdayTodos.length + index
     }))
     
     console.log('Debug - New todos to add:', newTodos)

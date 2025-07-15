@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { motion } from 'framer-motion'
 import { Play, Pause, Check, MoreHorizontal, ChevronRight, ChevronDown, Plus, Tag } from 'lucide-react'
 import { Todo } from '@shared/types'
@@ -19,10 +20,10 @@ const statusEmojis = {
 }
 
 const statusColors = {
-  waiting: 'bg-blue-50 border-blue-200',
-  in_progress: 'bg-purple-100 border-purple-300 shadow-lg',
-  paused: 'bg-amber-50 border-amber-200',
-  completed: 'bg-green-50 border-green-200 opacity-75'
+  waiting: 'bg-coral-50/60 backdrop-blur-sm shadow-md hover:shadow-lg',
+  in_progress: 'bg-coral-100/80 backdrop-blur-sm shadow-xl hover:shadow-2xl',
+  paused: 'bg-amber-50/60 backdrop-blur-sm shadow-md hover:shadow-lg',
+  completed: 'bg-green-50/60 backdrop-blur-sm shadow-sm opacity-75 hover:opacity-90'
 }
 
 function TodoItem({ todo, level }: TodoItemProps) {
@@ -33,6 +34,10 @@ function TodoItem({ todo, level }: TodoItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editValue, setEditValue] = useState('')
   const [isEditingCategory, setIsEditingCategory] = useState(false)
+  const [isEditingTime, setIsEditingTime] = useState(false)
+  const [editTimeValue, setEditTimeValue] = useState('')
+  const [menuButtonRect, setMenuButtonRect] = useState<DOMRect | null>(null)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
   
   const { updateTodoStatus, deleteTodo, addChildTodo, todos, updateTodo } = useTodoStore()
   const { categories } = useCategoryStore()
@@ -86,6 +91,33 @@ function TodoItem({ todo, level }: TodoItemProps) {
     setIsEditingCategory(false)
   }
 
+  const startTimeEdit = () => {
+    setEditTimeValue(getCurrentTime().toString())
+    setIsEditingTime(true)
+  }
+
+  const saveTimeEdit = () => {
+    const newTime = parseInt(editTimeValue) || 0
+    if (newTime >= 0 && newTime !== getCurrentTime()) {
+      updateTodo(todo.id, { totalTime: newTime })
+    }
+    setIsEditingTime(false)
+    setEditTimeValue('')
+  }
+
+  const cancelTimeEdit = () => {
+    setIsEditingTime(false)
+    setEditTimeValue('')
+  }
+
+  const handleTimeKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      saveTimeEdit()
+    } else if (e.key === 'Escape') {
+      cancelTimeEdit()
+    }
+  }
+
   const currentCategory = categories.find(cat => cat.id === todo.category)
 
   const formatTime = (minutes: number) => {
@@ -111,14 +143,15 @@ function TodoItem({ todo, level }: TodoItemProps) {
 
 
   return (
-    <div className={`rounded-2xl border-2 transition-all ${statusColors[todo.status]}`}>
+    <>
+    <div className={`rounded-2xl transition-all ${statusColors[todo.status]}`}>
       <div className="p-3">
         <div className="flex items-center gap-2">
           {/* 확장/축소 버튼 */}
           {hasChildren && (
             <button
               onClick={() => setIsExpanded(!isExpanded)}
-              className="p-1 rounded-lg hover:bg-white/50 transition-colors"
+              className="p-1 rounded-xl hover:bg-white/60 transition-all"
             >
               {isExpanded ? (
                 <ChevronDown size={16} className="text-gray-600" />
@@ -144,13 +177,13 @@ function TodoItem({ todo, level }: TodoItemProps) {
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={saveEdit}
                   onKeyDown={handleKeyPress}
-                  className="flex-1 bg-white/80 border-2 border-blue-300 rounded-lg px-2 py-1 text-sm font-medium text-gray-800 focus:outline-none focus:border-blue-500"
+                  className="flex-1 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 text-sm font-medium text-gray-800 focus:outline-none shadow-inner"
                   autoFocus
                   maxLength={100}
                 />
               ) : (
                 <span 
-                  className={`text-sm font-medium cursor-pointer hover:bg-white/30 rounded px-1 py-0.5 transition-colors ${todo.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-800'}`}
+                  className={`text-sm font-medium cursor-pointer hover:bg-white/40 rounded-lg px-2 py-1 transition-all ${todo.status === 'completed' ? 'line-through text-gray-500' : 'text-gray-800'}`}
                   onClick={startEdit}
                 >
                   {todo.title}
@@ -162,7 +195,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
                 <div className="flex flex-wrap gap-1">
                   <button
                     onClick={() => handleCategorySelect('')}
-                    className="px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full hover:bg-gray-300 transition-colors"
+                    className="px-2 py-0.5 text-xs bg-gray-200/70 backdrop-blur-sm text-gray-600 rounded-full hover:bg-gray-300/70 transition-all shadow-sm"
                   >
                     없음
                   </button>
@@ -170,7 +203,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
                     <button
                       key={category.id}
                       onClick={() => handleCategorySelect(category.id)}
-                      className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white/60 rounded-full hover:bg-white/80 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white/70 backdrop-blur-sm rounded-full hover:bg-white/90 transition-all shadow-sm"
                     >
                       <div
                         className="w-2 h-2 rounded-full"
@@ -185,7 +218,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
                   {currentCategory ? (
                     <button
                       onClick={() => setIsEditingCategory(true)}
-                      className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white/60 rounded-full hover:bg-white/80 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 text-xs bg-white/70 backdrop-blur-sm rounded-full hover:bg-white/90 transition-all shadow-sm"
                     >
                       <div
                         className="w-2 h-2 rounded-full"
@@ -196,7 +229,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
                   ) : (
                     <button
                       onClick={() => setIsEditingCategory(true)}
-                      className="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-200 text-gray-500 rounded-full hover:bg-gray-300 transition-colors"
+                      className="flex items-center gap-1 px-2 py-0.5 text-xs bg-gray-200/70 backdrop-blur-sm text-gray-500 rounded-full hover:bg-gray-300/70 transition-all shadow-sm"
                     >
                       <Tag size={8} />
                       카테고리
@@ -211,9 +244,31 @@ function TodoItem({ todo, level }: TodoItemProps) {
           </div>
 
           {/* 시간 표시 */}
-          <div className="text-xs text-gray-600 bg-white/50 px-2 py-1 rounded-full">
-            ⏰ {formatTime(getCurrentTime())}
-            {isActive && (
+          <div className="text-xs text-gray-600 bg-white/70 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+            {isEditingTime ? (
+              <div className="flex items-center gap-1">
+                <span>⏰</span>
+                <input
+                  type="number"
+                  value={editTimeValue}
+                  onChange={(e) => setEditTimeValue(e.target.value)}
+                  onBlur={saveTimeEdit}
+                  onKeyDown={handleTimeKeyPress}
+                  className="w-12 bg-transparent text-center outline-none border-b border-coral-300"
+                  min="0"
+                  autoFocus
+                />
+                <span className="text-xs">분</span>
+              </div>
+            ) : (
+              <span
+                onClick={startTimeEdit}
+                className="cursor-pointer hover:text-coral-600 transition-colors"
+              >
+                ⏰ {formatTime(getCurrentTime())}
+              </span>
+            )}
+            {isActive && !isEditingTime && (
               <motion.span
                 className="ml-1 text-orange-500"
                 animate={{ opacity: [1, 0.5, 1] }}
@@ -229,7 +284,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
             {todo.status === 'waiting' && (
               <motion.button
                 onClick={() => handleStatusChange('in_progress')}
-                className="p-1.5 rounded-full bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors"
+                className="p-1.5 rounded-full bg-coral-200/80 text-coral-800 hover:bg-coral-300/80 transition-all shadow-sm hover:shadow-md"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
@@ -241,7 +296,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
               <>
                 <motion.button
                   onClick={() => handleStatusChange('paused')}
-                  className="p-1.5 rounded-full bg-amber-200 text-amber-800 hover:bg-amber-300 transition-colors"
+                  className="p-1.5 rounded-full bg-amber-200/80 text-amber-800 hover:bg-amber-300/80 transition-all shadow-sm hover:shadow-md"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -249,7 +304,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
                 </motion.button>
                 <motion.button
                   onClick={() => handleStatusChange('completed')}
-                  className="p-1.5 rounded-full bg-green-200 text-green-800 hover:bg-green-300 transition-colors"
+                  className="p-1.5 rounded-full bg-green-200/80 text-green-800 hover:bg-green-300/80 transition-all shadow-sm hover:shadow-md"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -262,7 +317,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
               <>
                 <motion.button
                   onClick={() => handleStatusChange('in_progress')}
-                  className="p-1.5 rounded-full bg-purple-200 text-purple-800 hover:bg-purple-300 transition-colors"
+                  className="p-1.5 rounded-full bg-coral-200/80 text-coral-800 hover:bg-coral-300/80 transition-all shadow-sm hover:shadow-md"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -270,7 +325,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
                 </motion.button>
                 <motion.button
                   onClick={() => handleStatusChange('completed')}
-                  className="p-1.5 rounded-full bg-green-200 text-green-800 hover:bg-green-300 transition-colors"
+                  className="p-1.5 rounded-full bg-green-200/80 text-green-800 hover:bg-green-300/80 transition-all shadow-sm hover:shadow-md"
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
                 >
@@ -282,7 +337,7 @@ function TodoItem({ todo, level }: TodoItemProps) {
             {todo.status === 'completed' && (
               <motion.button
                 onClick={() => handleStatusChange('waiting')}
-                className="p-1.5 rounded-full bg-blue-200 text-blue-800 hover:bg-blue-300 transition-colors"
+                className="p-1.5 rounded-full bg-coral-200/80 text-coral-800 hover:bg-coral-300/80 transition-all shadow-sm hover:shadow-md"
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.9 }}
               >
@@ -293,10 +348,10 @@ function TodoItem({ todo, level }: TodoItemProps) {
             {/* 하위 할 일 추가 버튼 */}
             <motion.button
               onClick={() => setShowAddChild(!showAddChild)}
-              className={`p-1.5 rounded-full transition-colors ${
+              className={`p-1.5 rounded-full transition-all shadow-sm hover:shadow-md ${
                 showAddChild 
-                  ? 'bg-pink-300 text-pink-900' 
-                  : 'bg-pink-200 text-pink-800 hover:bg-pink-300'
+                  ? 'bg-coral-300/90 text-coral-900' 
+                  : 'bg-coral-200/80 text-coral-800 hover:bg-coral-300/80'
               }`}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
@@ -306,24 +361,18 @@ function TodoItem({ todo, level }: TodoItemProps) {
 
             {/* 메뉴 버튼 */}
             <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-1.5 rounded-full hover:bg-white/50 transition-colors relative"
+              ref={menuButtonRef}
+              onClick={() => {
+                if (menuButtonRef.current) {
+                  const rect = menuButtonRef.current.getBoundingClientRect()
+                  setMenuButtonRect(rect)
+                }
+                setShowMenu(!showMenu)
+              }}
+              className="p-1.5 rounded-full hover:bg-white/60 transition-all shadow-sm"
             >
               <MoreHorizontal size={14} className="text-gray-600" />
               
-              {showMenu && (
-                <div className="absolute right-0 top-10 bg-white rounded-2xl shadow-lg border p-2 z-10 min-w-32">
-                  <button
-                    onClick={() => {
-                      deleteTodo(todo.id)
-                      setShowMenu(false)
-                    }}
-                    className="w-full text-left px-3 py-2 rounded-lg hover:bg-red-100 text-red-600 text-sm"
-                  >
-                    🗑️ 삭제
-                  </button>
-                </div>
-              )}
             </button>
           </div>
         </div>
@@ -360,6 +409,33 @@ function TodoItem({ todo, level }: TodoItemProps) {
         </motion.div>
       )}
     </div>
+    
+    {/* 메뉴 드롭다운을 포털로 렌더링 */}
+    {showMenu && menuButtonRect && createPortal(
+      <motion.div
+        className="fixed bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-coral-200/50 p-2 min-w-32"
+        style={{ 
+          top: menuButtonRect.bottom + 4,
+          right: window.innerWidth - menuButtonRect.right,
+          zIndex: 9999
+        }}
+        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+      >
+        <button
+          onClick={() => {
+            deleteTodo(todo.id)
+            setShowMenu(false)
+          }}
+          className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-100/80 text-red-600 text-sm transition-all"
+        >
+          🗑️ 삭제
+        </button>
+      </motion.div>,
+      document.body
+    )}
+    </>
   )
 }
 

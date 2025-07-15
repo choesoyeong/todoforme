@@ -90,8 +90,8 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
 
   return (
     <motion.div
-      className={`bg-white/50 backdrop-blur-lg rounded-2xl border-2 transition-all ${
-        isFocused ? 'border-purple-300 shadow-lg bg-white/70' : 'border-purple-100/30'
+      className={`bg-white/60 backdrop-blur-lg rounded-2xl transition-all shadow-lg hover:shadow-xl ${
+        isFocused ? 'shadow-2xl bg-white/80 scale-[1.02]' : 'shadow-lg'
       }`}
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -104,7 +104,7 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
               ref={buttonRef}
               type="button"
               onClick={handleCategoryButtonClick}
-              className="flex items-center gap-1 px-2 py-1.5 bg-white/60 rounded-lg border-2 border-purple-200 hover:border-purple-300 transition-colors min-w-20"
+              className="flex items-center gap-1 px-3 py-2 bg-coral-100/50 backdrop-blur-sm rounded-xl hover:bg-coral-100/70 transition-all min-w-20 shadow-sm hover:shadow-md"
             >
               {selectedCategory ? (
                 <>
@@ -142,9 +142,9 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
           <motion.button
             type="submit"
             disabled={!title.trim()}
-            className={`p-2 rounded-lg transition-all ${
+            className={`p-2 rounded-xl transition-all shadow-sm ${
               title.trim() 
-                ? 'bg-purple-300 text-purple-900 hover:bg-purple-400' 
+                ? 'bg-coral-300 text-coral-900 hover:bg-coral-400 hover:shadow-md' 
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
             whileHover={title.trim() ? { scale: 1.05 } : {}}
@@ -168,7 +168,7 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
       {/* 카테고리 드롭다운을 포털로 렌더링 */}
       {showCategoryDropdown && buttonRect && createPortal(
         <motion.div
-          className="fixed bg-white rounded-xl shadow-lg border-2 border-gray-200 min-w-48"
+          className="fixed bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-coral-200/50 min-w-48"
           style={{ 
             top: buttonRect.bottom + 4,
             left: buttonRect.left,
@@ -182,7 +182,7 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
             <button
               type="button"
               onClick={() => handleCategorySelect('')}
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-left"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-coral-50/80 transition-all text-left"
             >
               <div className="w-3 h-3 rounded-full border-2 border-gray-300" />
               <span className="text-sm text-gray-500">카테고리 없음</span>
@@ -192,7 +192,7 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
                 key={category.id}
                 type="button"
                 onClick={() => handleCategorySelect(category.id)}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-left"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-coral-50/80 transition-all text-left"
               >
                 <div
                   className="w-3 h-3 rounded-full"
