@@ -243,41 +243,43 @@ function TodoItem({ todo, level }: TodoItemProps) {
             )}
           </div>
 
-          {/* 시간 표시 */}
-          <div className="text-xs text-gray-600 bg-white/70 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
-            {isEditingTime ? (
-              <div className="flex items-center gap-1">
-                <span>⏰</span>
-                <input
-                  type="number"
-                  value={editTimeValue}
-                  onChange={(e) => setEditTimeValue(e.target.value)}
-                  onBlur={saveTimeEdit}
-                  onKeyDown={handleTimeKeyPress}
-                  className="w-12 bg-transparent text-center outline-none border-b border-coral-300"
-                  min="0"
-                  autoFocus
-                />
-                <span className="text-xs">분</span>
-              </div>
-            ) : (
-              <span
-                onClick={startTimeEdit}
-                className="cursor-pointer hover:text-coral-600 transition-colors"
-              >
-                ⏰ {formatTime(getCurrentTime())}
-              </span>
-            )}
-            {isActive && !isEditingTime && (
-              <motion.span
-                className="ml-1 text-orange-500"
-                animate={{ opacity: [1, 0.5, 1] }}
-                transition={{ duration: 1, repeat: Infinity }}
-              >
-                •
-              </motion.span>
-            )}
-          </div>
+          {/* 시간 표시 - waiting 상태가 아닐 때만 표시 */}
+          {todo.status !== 'waiting' && (
+            <div className="text-xs text-gray-600 bg-white/70 backdrop-blur-sm px-3 py-1 rounded-full shadow-sm">
+              {isEditingTime ? (
+                <div className="flex items-center gap-1">
+                  <span>⏰</span>
+                  <input
+                    type="number"
+                    value={editTimeValue}
+                    onChange={(e) => setEditTimeValue(e.target.value)}
+                    onBlur={saveTimeEdit}
+                    onKeyDown={handleTimeKeyPress}
+                    className="w-12 bg-transparent text-center outline-none border-b border-coral-300"
+                    min="0"
+                    autoFocus
+                  />
+                  <span className="text-xs">분</span>
+                </div>
+              ) : (
+                <span
+                  onClick={startTimeEdit}
+                  className="cursor-pointer hover:text-coral-600 transition-colors"
+                >
+                  ⏰ {formatTime(getCurrentTime())}
+                </span>
+              )}
+              {isActive && !isEditingTime && (
+                <motion.span
+                  className="ml-1 text-orange-500"
+                  animate={{ opacity: [1, 0.5, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                >
+                  •
+                </motion.span>
+              )}
+            </div>
+          )}
 
           {/* 액션 버튼들 */}
           <div className="flex items-center gap-1">

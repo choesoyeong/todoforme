@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Coral gradient for background -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#eb594d"/>
+      <stop offset="100%" stop-color="#f18a82"/>
+    </linearGradient>
+    
+    <!-- White gradient for checkmark -->
+    <linearGradient id="checkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fef7f6"/>
+    </linearGradient>
+    
+    <!-- Soft shadow -->
+    <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="8" stdDeviation="16" flood-color="rgba(235, 89, 77, 0.3)"/>
+    </filter>
+  </defs>
+  
+  <!-- Main circular background -->
+  <circle cx="256" cy="256" r="220" fill="url(#bgGradient)" filter="url(#softShadow)"/>
+  
+  <!-- Large checkmark - simple and bold -->
+  <path 
+    d="M 160 256 L 220 316 L 352 184" 
+    stroke="url(#checkGradient)" 
+    stroke-width="32" 
+    fill="none" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+  />
+  
+  <!-- Small accent dot for visual balance -->
+  <circle cx="380" cy="150" r="12" fill="rgba(255,255,255,0.3)"/>
+</svg>

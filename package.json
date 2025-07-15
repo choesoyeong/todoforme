@@ -49,12 +49,20 @@
     "directories": {
       "output": "release"
     },
+    "mac": {
+      "icon": "assets/icons/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "win": {
+      "icon": "assets/icons/icon.ico"
+    },
+    "linux": {
+      "icon": "assets/icons/icon.png"
+    },
     "files": [
       "dist/**/*",
-      "node_modules/**/*"
-    ],
-    "mac": {
-      "category": "public.app-category.productivity"
-    }
+      "node_modules/**/*",
+      "assets/**/*"
+    ]
   }
 }
