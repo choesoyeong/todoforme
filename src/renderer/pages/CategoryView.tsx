@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Edit3, Trash2, Palette } from 'lucide-react'
+import { Plus, Edit3, Trash2, Palette, Archive, ArchiveRestore } from 'lucide-react'
 import { Category } from '@shared/types'
 import { useCategoryStore } from '../stores/categoryStore'
 
@@ -53,6 +53,13 @@ function CategoryView() {
     if (confirm('이 카테고리를 삭제하시겠습니까?')) {
       deleteCategory(id)
     }
+  }
+
+  const handleToggleDeprecated = (category: Category) => {
+    updateCategory(category.id, { 
+      ...category, 
+      deprecated: !category.deprecated 
+    })
   }
 
   return (
@@ -164,7 +171,11 @@ function CategoryView() {
             {categories.map((category) => (
               <motion.div
                 key={category.id}
-                className="bg-white/60 backdrop-blur-lg rounded-2xl border-2 border-white/30 p-4 hover:shadow-lg transition-all"
+                className={`backdrop-blur-lg rounded-2xl border-2 p-4 hover:shadow-lg transition-all ${
+                  category.deprecated 
+                    ? 'bg-gray-100/60 border-gray-200/50 opacity-70' 
+                    : 'bg-white/60 border-white/30'
+                }`}
                 initial={{ opacity: 0, scale: 0.9 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
@@ -176,9 +187,27 @@ function CategoryView() {
                       className="w-6 h-6 rounded-full border-2 border-white"
                       style={{ backgroundColor: category.color }}
                     />
-                    <span className="font-medium text-gray-800">{category.name}</span>
+                    <div className="flex flex-col">
+                      <span className={`font-medium ${category.deprecated ? 'text-gray-500' : 'text-gray-800'}`}>
+                        {category.name}
+                      </span>
+                      {category.deprecated && (
+                        <span className="text-xs text-gray-400">사용 중단됨</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex gap-1">
+                    <button
+                      onClick={() => handleToggleDeprecated(category)}
+                      className={`p-2 rounded-lg transition-colors ${
+                        category.deprecated
+                          ? 'hover:bg-green-100 text-green-600'
+                          : 'hover:bg-orange-100 text-orange-600'
+                      }`}
+                      title={category.deprecated ? '사용 재개' : '사용 중단'}
+                    >
+                      {category.deprecated ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                    </button>
                     <button
                       onClick={() => startEdit(category)}
                       className="p-2 rounded-lg hover:bg-white/50 transition-colors text-gray-600"

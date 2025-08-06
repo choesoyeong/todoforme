@@ -10,7 +10,7 @@ import { SortOption } from '@shared/types'
 
 function TodoView() {
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [sortOption, setSortOption] = useState<SortOption>('created')
+  const [sortOption, setSortOption] = useState<SortOption>('recommended')
   const [showSortDropdown, setShowSortDropdown] = useState(false)
   const getTodayWorkTime = useTodoStore(state => state.getTodayWorkTime)
   const copyIncompleteTodosFromYesterday = useTodoStore(state => state.copyIncompleteTodosFromYesterday)

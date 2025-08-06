@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain } from 'electron'
+import { app, BrowserWindow, Menu, ipcMain, powerMonitor } from 'electron'
 import * as path from 'path'
 
 const Store = require('electron-store')
@@ -123,6 +123,23 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   createWindow()
+
+  // 시스템 절전/깨우기 모니터링
+  powerMonitor.on('suspend', () => {
+    // 절전 모드로 들어갈 때 렌더러에 알림
+    const windows = BrowserWindow.getAllWindows()
+    windows.forEach(window => {
+      window.webContents.send('system-suspend')
+    })
+  })
+
+  powerMonitor.on('resume', () => {
+    // 절전 모드에서 깨어날 때 렌더러에 알림
+    const windows = BrowserWindow.getAllWindows()
+    windows.forEach(window => {
+      window.webContents.send('system-resume')
+    })
+  })
 
   app.on('activate', function () {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

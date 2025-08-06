@@ -53,6 +53,7 @@ export interface Category {
   id: string
   name: string
   color: string // hex color like #FF6B6B
+  deprecated?: boolean // 더 이상 사용하지 않는 카테고리 (기본값: false)
 }
 
 export type SortOption = 'created' | 'recommended' | 'category' | 'workTime'

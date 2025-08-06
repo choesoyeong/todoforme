@@ -13,5 +13,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
     importData: (data: any) => ipcRenderer.invoke('storage:importData', data),
     clearAll: () => ipcRenderer.invoke('storage:clearAll'),
     getStorePath: () => ipcRenderer.invoke('storage:getStorePath')
+  },
+  onSystemSuspend: (callback: () => void) => {
+    ipcRenderer.on('system-suspend', callback)
+    return () => ipcRenderer.removeListener('system-suspend', callback)
+  },
+  onSystemResume: (callback: () => void) => {
+    ipcRenderer.on('system-resume', callback)
+    return () => ipcRenderer.removeListener('system-resume', callback)
   }
 })

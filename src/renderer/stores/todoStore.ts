@@ -157,8 +157,8 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
         return todos.sort((a, b) => a.order - b.order)
       
       case 'recommended':
-        // 일시정지 -> 미진행 -> 완료 순으로 정렬
-        const statusOrder = { 'paused': 0, 'waiting': 1, 'in_progress': 2, 'completed': 3 }
+        // 진행중 -> 일시정지 -> 미진행 -> 완료 순으로 정렬
+        const statusOrder = { 'in_progress': 0, 'paused': 1, 'waiting': 2, 'completed': 3 }
         return todos.sort((a, b) => {
           const statusDiff = statusOrder[a.status] - statusOrder[b.status]
           if (statusDiff !== 0) return statusDiff

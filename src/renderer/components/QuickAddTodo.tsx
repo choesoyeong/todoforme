@@ -187,7 +187,9 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
               <div className="w-3 h-3 rounded-full border-2 border-gray-300" />
               <span className="text-sm text-gray-500">카테고리 없음</span>
             </button>
-            {categories.map((category) => (
+            {categories
+              .filter(category => !category.deprecated) // deprecated 카테고리 숨김
+              .map((category) => (
               <button
                 key={category.id}
                 type="button"
