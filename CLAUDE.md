@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-TodoForMe is a Korean desktop todo application built with Electron, React, and TypeScript. It features hierarchical todo management, built-in timers, and statistics tracking.
+TodoForMe is a Korean desktop todo application built with Electron, React, and TypeScript. It features hierarchical todo management with simple completion tracking and statistics.
 
 ## Development Commands
 
@@ -31,15 +31,13 @@ TodoForMe is a Korean desktop todo application built with Electron, React, and T
 ```
 src/
 ├── main/              # Electron main process
-│   ├── main.ts        # App entry, window management
-│   ├── preload.ts     # Bridge between main/renderer
-│   └── storage.ts     # Not present - storage handled in main.ts
+│   ├── main.ts        # App entry, window management, storage API
+│   └── preload.ts     # Context isolation bridge (electronAPI)
 ├── renderer/          # React application
 │   ├── components/    # Reusable UI components
 │   ├── pages/         # Main application views
 │   ├── stores/        # Zustand state management
-│   ├── types/         # Renderer-specific types
-│   └── utils/         # Helper functions
+│   └── types/         # Renderer-specific types
 └── shared/           # Common types between processes
 ```
 
@@ -51,23 +49,30 @@ src/
 - **Storage**: electron-store for persistence
 - **Date Handling**: date-fns library
 
+### Navigation
+State-based view switching (no URL router): `ViewType = 'todos' | 'stats' | 'categories' | 'settings'`. Sidebar triggers `setCurrentView()` with Framer Motion transitions.
+
 ### State Management Architecture
-Three main Zustand stores:
-- `todoStore` - Todo CRUD operations, hierarchical relationships
-- `timerStore` - Active timer state and elapsed time tracking  
-- `statsStore` - Statistics calculations and analytics
+Three Zustand stores:
+- `todoStore` - Todo CRUD operations, hierarchical relationships, sorting, persistence
+- `statsStore` - Statistics calculations (daily/weekly/monthly) and analytics
+- `categoryStore` - Category CRUD with color management and deprecation flag
 
 ### Data Models
 Todos support hierarchical structure with parent-child relationships:
 - `parentId` field links child todos to parents
 - `children` array maintains child todo IDs
-- Timer integration tracks time per todo with automatic status transitions
+- Simple status: `waiting` (unchecked) / `completed` (checked)
+
+### IPC Communication
+**Renderer → Main (invoke):** `storage:getTodos`, `storage:setTodos`, `storage:getCategories`, `storage:setCategories`, `storage:getSettings`, `storage:setSetting`, `storage:exportData`, `storage:importData`, `storage:clearAll`, `storage:getStorePath`
 
 ### Storage Implementation
 Uses electron-store for cross-platform data persistence:
-- Main process handles storage operations via IPC
-- Preload script exposes safe storage API to renderer
+- Main process handles storage operations via IPC handlers
+- Preload script exposes `window.electronAPI` with storage methods
 - Fallback to localStorage for browser development
+- Zustand stores auto-save on every state change
 
 ### Path Aliases
 - `@/*` → `src/renderer/*`
@@ -75,18 +80,15 @@ Uses electron-store for cross-platform data persistence:
 
 ## Key Implementation Details
 
-### Timer System
-- Only one todo can have active timer at a time
-- Automatic time accumulation when status changes from 'in_progress'
-- Time tracked in minutes, stored in `totalTime` field
-
 ### Todo Status Flow
-- `waiting` → `in_progress` → `paused`/`completed`
-- Status changes automatically update timer state
+- `waiting` ↔ `completed` (simple checkbox toggle via `toggleTodoStatus`)
 - Deletion cascades to all child todos
 
 ### Development Notes
 - No test framework currently configured
 - No linting commands in package.json (ESLint configured via tsconfig)
-- Korean UI text throughout the application
-- Statistics feature is basic implementation requiring enhancement
+- Korean UI text throughout the application — use Korean for user-facing strings
+- QuickAddTodo uses composition events for Korean IME input handling
+- Vite dev server runs on port 3000
+- Icons from Lucide React library
+- Custom Tailwind palette: coral theme with peach, sky, cream, mint, lavender, rose shades

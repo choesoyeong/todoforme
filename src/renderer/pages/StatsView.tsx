@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { motion } from 'framer-motion'
-import { TrendingUp, Clock, Target, Zap } from 'lucide-react'
+import { TrendingUp, Target, Zap } from 'lucide-react'
 
 type StatsTab = 'daily' | 'weekly' | 'monthly'
 
@@ -16,19 +16,16 @@ function StatsView() {
   const mockStats = {
     daily: {
       completionRate: 75,
-      totalTime: 240,
       contextSwitches: 8,
       topCategory: '공부'
     },
     weekly: {
       completionRate: 68,
-      totalTime: 1680,
       contextSwitches: 42,
       topCategory: '업무'
     },
     monthly: {
       completionRate: 72,
-      totalTime: 7200,
       contextSwitches: 156,
       topCategory: '공부'
     }
@@ -66,7 +63,7 @@ function StatsView() {
       </div>
 
       {/* 통계 카드들 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <motion.div
           className="bg-white/40 backdrop-blur-lg rounded-3xl p-6 border border-white/20"
           initial={{ opacity: 0, y: 20 }}
@@ -94,26 +91,6 @@ function StatsView() {
           transition={{ delay: 0.2 }}
         >
           <div className="flex items-center gap-3 mb-3">
-            <div className="p-2 bg-blue-100 rounded-2xl">
-              <Clock className="text-blue-600" size={20} />
-            </div>
-            <span className="text-sm text-gray-600">집중 시간</span>
-          </div>
-          <div className="text-2xl font-bold text-gray-800">
-            {Math.floor(currentStats.totalTime / 60)}h {currentStats.totalTime % 60}m
-          </div>
-          <div className="text-sm text-blue-600 mt-1">
-            ⏰ 꾸준히 해요!
-          </div>
-        </motion.div>
-
-        <motion.div
-          className="bg-white/40 backdrop-blur-lg rounded-3xl p-6 border border-white/20"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-        >
-          <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-orange-100 rounded-2xl">
               <Zap className="text-orange-600" size={20} />
             </div>
@@ -131,7 +108,7 @@ function StatsView() {
           className="bg-white/40 backdrop-blur-lg rounded-3xl p-6 border border-white/20"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+          transition={{ delay: 0.3 }}
         >
           <div className="flex items-center gap-3 mb-3">
             <div className="p-2 bg-coral-100 rounded-2xl">
@@ -153,7 +130,7 @@ function StatsView() {
         className="bg-white/40 backdrop-blur-lg rounded-3xl p-6 border border-white/20"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+        transition={{ delay: 0.4 }}
       >
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
           📈 상세 분석

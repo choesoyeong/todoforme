@@ -1,4 +1,4 @@
-export type TodoStatus = 'waiting' | 'in_progress' | 'paused' | 'completed'
+export type TodoStatus = 'waiting' | 'completed'
 
 export interface Todo {
   id: string
@@ -7,26 +7,16 @@ export interface Todo {
   description?: string
   status: TodoStatus
   dateCreated: string // YYYY-MM-DD
-  startTime?: number // timestamp
-  endTime?: number // timestamp
-  totalTime: number // minutes
   parentId?: string
   children: string[]
   category?: string
   order: number
 }
 
-export interface TimerState {
-  activeTodoId?: string
-  startTime?: number
-  elapsedTime: number // seconds
-}
-
 export interface DailyStats {
   date: string // YYYY-MM-DD
   totalTodos: number
   completedTodos: number
-  totalTimeSpent: number // minutes
   contextSwitches: number
   categories: Record<string, number>
 }
@@ -34,7 +24,6 @@ export interface DailyStats {
 export interface WeeklyStats {
   weekStart: string // YYYY-MM-DD
   dailyStats: DailyStats[]
-  weeklyTotalTime: number
   weeklyCompletedTodos: number
   weeklyContextSwitches: number
   topCategories: Array<{ category: string; count: number }>
@@ -43,7 +32,6 @@ export interface WeeklyStats {
 export interface MonthlyStats {
   month: string // YYYY-MM
   weeklyStats: WeeklyStats[]
-  monthlyTotalTime: number
   monthlyCompletedTodos: number
   monthlyContextSwitches: number
   topCategories: Array<{ category: string; count: number }>
@@ -56,4 +44,4 @@ export interface Category {
   deprecated?: boolean // 더 이상 사용하지 않는 카테고리 (기본값: false)
 }
 
-export type SortOption = 'created' | 'recommended' | 'category' | 'workTime'
+export type SortOption = 'created' | 'recommended' | 'category'

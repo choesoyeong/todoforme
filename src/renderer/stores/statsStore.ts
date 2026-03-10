@@ -16,8 +16,7 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
   getDailyStats: (date) => {
     const todos = useTodoStore.getState().getTodosByDate(date)
     const completedTodos = todos.filter(t => t.status === 'completed').length
-    const totalTime = todos.reduce((sum, todo) => sum + todo.totalTime, 0)
-    
+
     // 카테고리별 통계
     const categories: Record<string, number> = {}
     todos.forEach(todo => {
@@ -30,7 +29,6 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
       date,
       totalTodos: todos.length,
       completedTodos,
-      totalTimeSpent: totalTime,
       contextSwitches: get().calculateContextSwitches(date),
       categories
     }
@@ -39,26 +37,24 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
   getWeeklyStats: (date) => {
     const weekStart = format(startOfWeek(new Date(date)), 'yyyy-MM-dd')
     const weekEnd = format(endOfWeek(new Date(date)), 'yyyy-MM-dd')
-    
+
     const daysInWeek = eachDayOfInterval({
       start: new Date(weekStart),
       end: new Date(weekEnd)
     })
 
-    const dailyStats = daysInWeek.map(day => 
+    const dailyStats = daysInWeek.map(day =>
       get().getDailyStats(format(day, 'yyyy-MM-dd'))
     )
 
-    const weeklyTotalTime = dailyStats.reduce((sum, day) => sum + day.totalTimeSpent, 0)
     const weeklyCompletedTodos = dailyStats.reduce((sum, day) => sum + day.completedTodos, 0)
     const weeklyContextSwitches = dailyStats.reduce((sum, day) => sum + day.contextSwitches, 0)
-    
+
     const topCategories = get().getTopCategories(weekStart, weekEnd)
 
     return {
       weekStart,
       dailyStats,
-      weeklyTotalTime,
       weeklyCompletedTodos,
       weeklyContextSwitches,
       topCategories
@@ -68,20 +64,18 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
   getMonthlyStats: (date) => {
     const monthStart = format(startOfMonth(new Date(date)), 'yyyy-MM-dd')
     const monthEnd = format(endOfMonth(new Date(date)), 'yyyy-MM-dd')
-    
+
     // 주별 통계들 수집 (간단화를 위해 첫 주만)
     const weeklyStats = [get().getWeeklyStats(date)]
-    
-    const monthlyTotalTime = weeklyStats.reduce((sum, week) => sum + week.weeklyTotalTime, 0)
+
     const monthlyCompletedTodos = weeklyStats.reduce((sum, week) => sum + week.weeklyCompletedTodos, 0)
     const monthlyContextSwitches = weeklyStats.reduce((sum, week) => sum + week.weeklyContextSwitches, 0)
-    
+
     const topCategories = get().getTopCategories(monthStart, monthEnd)
 
     return {
       month: format(new Date(date), 'yyyy-MM'),
       weeklyStats,
-      monthlyTotalTime,
       monthlyCompletedTodos,
       monthlyContextSwitches,
       topCategories
@@ -91,13 +85,12 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
   calculateCompletionRate: (date) => {
     const todos = useTodoStore.getState().getTodosByDate(date)
     if (todos.length === 0) return 0
-    
+
     const completed = todos.filter(t => t.status === 'completed').length
     return Math.round((completed / todos.length) * 100)
   },
 
   calculateContextSwitches: (date) => {
-    // 간단화: 날짜별 완료된 할 일 수를 기반으로 추정
     const todos = useTodoStore.getState().getTodosByDate(date)
     const completedTodos = todos.filter(t => t.status === 'completed')
     return Math.max(0, completedTodos.length - 1)
@@ -105,7 +98,7 @@ export const useStatsStore = create<StatsStore>((set, get) => ({
 
   getTopCategories: (startDate, endDate) => {
     const allTodos = useTodoStore.getState().todos
-    const relevantTodos = allTodos.filter(todo => 
+    const relevantTodos = allTodos.filter(todo =>
       todo.dateCreated >= startDate && todo.dateCreated <= endDate
     )
 
