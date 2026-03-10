@@ -167,9 +167,15 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
       
       {/* 카테고리 드롭다운을 포털로 렌더링 */}
       {showCategoryDropdown && buttonRect && createPortal(
+        <>
+        <div
+          className="fixed inset-0"
+          style={{ zIndex: 9998 }}
+          onClick={() => setShowCategoryDropdown(false)}
+        />
         <motion.div
           className="fixed bg-white/95 backdrop-blur-md rounded-xl shadow-2xl border border-coral-200/50 min-w-48"
-          style={{ 
+          style={{
             top: buttonRect.bottom + 4,
             left: buttonRect.left,
             zIndex: 9999
@@ -204,7 +210,8 @@ function QuickAddTodo({ selectedDate, parentId }: QuickAddTodoProps) {
               </button>
             ))}
           </div>
-        </motion.div>,
+        </motion.div>
+        </>,
         document.body
       )}
     </motion.div>

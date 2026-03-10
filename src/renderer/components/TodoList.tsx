@@ -1,8 +1,8 @@
-import React from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import TodoItem from './TodoItem'
+import React, { useState, useEffect, useRef } from 'react'
+import { motion, Reorder } from 'framer-motion'
+import ReorderableItem from './ReorderableItem'
 import { useTodoStore } from '../stores/todoStore'
-import { SortOption } from '@shared/types'
+import { SortOption, Todo } from '@shared/types'
 
 interface TodoListProps {
   selectedDate: string
@@ -10,9 +10,35 @@ interface TodoListProps {
 }
 
 function TodoList({ selectedDate, sortOption }: TodoListProps) {
-  const { getSortedTodos } = useTodoStore()
+  const { getSortedTodos, reorderTodos } = useTodoStore()
   const todosForDate = getSortedTodos(selectedDate, sortOption)
   const rootTodos = todosForDate.filter(todo => !todo.parentId)
+  const [orderedTodos, setOrderedTodos] = useState<Todo[]>(rootTodos)
+  const isDragging = useRef(false)
+
+  // 스토어 변경 시 동기화 — 드래그 중에는 무시
+  useEffect(() => {
+    if (!isDragging.current) {
+      setOrderedTodos(rootTodos)
+    }
+  }, [selectedDate, sortOption, rootTodos.map(t => t.id).join(','), rootTodos.map(t => t.order).join(','), rootTodos.map(t => t.status).join(',')])
+
+  const handleReorder = (newOrder: Todo[]) => {
+    setOrderedTodos(newOrder)
+  }
+
+  const handleDragStart = () => {
+    isDragging.current = true
+  }
+
+  const handleDragEnd = () => {
+    const ids = orderedTodos.map(t => t.id)
+    reorderTodos(selectedDate, ids)
+    // 약간의 지연 후 드래그 상태 해제 (스토어 업데이트 완료 대기)
+    requestAnimationFrame(() => {
+      isDragging.current = false
+    })
+  }
 
   if (rootTodos.length === 0) {
     return (
@@ -35,22 +61,23 @@ function TodoList({ selectedDate, sortOption }: TodoListProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-6">
-      <AnimatePresence>
-        <div className="space-y-2">
-          {rootTodos.map((todo, index) => (
-            <motion.div
-              key={todo.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <TodoItem todo={todo} level={0} />
-            </motion.div>
-          ))}
-        </div>
-      </AnimatePresence>
+    <div className="h-full overflow-y-auto p-6" style={{ overscrollBehavior: 'contain' }}>
+      <Reorder.Group
+        axis="y"
+        values={orderedTodos}
+        onReorder={handleReorder}
+        layoutScroll
+        className="space-y-2 list-none p-0 m-0"
+      >
+        {orderedTodos.map((todo) => (
+          <ReorderableItem
+            key={todo.id}
+            todo={todo}
+            onDragStart={handleDragStart}
+            onDragEnd={handleDragEnd}
+          />
+        ))}
+      </Reorder.Group>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { motion } from 'framer-motion'
-import { Check, MoreHorizontal, ChevronRight, ChevronDown, Plus, Tag } from 'lucide-react'
+import { motion, DragControls } from 'framer-motion'
+import { Check, MoreHorizontal, ChevronRight, ChevronDown, GripVertical, Plus, Tag } from 'lucide-react'
 import { Todo } from '@shared/types'
 import { useTodoStore } from '../stores/todoStore'
 import { useCategoryStore } from '../stores/categoryStore'
@@ -10,6 +10,7 @@ import QuickAddTodo from './QuickAddTodo'
 interface TodoItemProps {
   todo: Todo
   level: number
+  dragControls?: DragControls
 }
 
 const statusColors = {
@@ -17,7 +18,7 @@ const statusColors = {
   completed: 'bg-green-50/60 backdrop-blur-sm shadow-sm opacity-75 hover:opacity-90'
 }
 
-function TodoItem({ todo, level }: TodoItemProps) {
+function TodoItem({ todo, level, dragControls }: TodoItemProps) {
   const [isExpanded, setIsExpanded] = useState(true)
   const [showMenu, setShowMenu] = useState(false)
   const [showAddChild, setShowAddChild] = useState(false)
@@ -86,6 +87,16 @@ function TodoItem({ todo, level }: TodoItemProps) {
             </button>
           )}
 
+          {/* 드래그 핸들 (루트 레벨만) */}
+          {!todo.parentId && dragControls && (
+            <div
+              className="cursor-grab active:cursor-grabbing p-0.5 rounded hover:bg-white/40 transition-all text-gray-400 hover:text-gray-600 touch-none"
+              onPointerDown={(e) => dragControls.start(e)}
+            >
+              <GripVertical size={14} />
+            </div>
+          )}
+
           {/* 완료 체크박스 */}
           <motion.button
             onClick={() => toggleTodoStatus(todo.id)}
@@ -111,7 +122,8 @@ function TodoItem({ todo, level }: TodoItemProps) {
                   onChange={(e) => setEditValue(e.target.value)}
                   onBlur={saveEdit}
                   onKeyDown={handleKeyPress}
-                  className="flex-1 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 text-sm font-medium text-gray-800 focus:outline-none shadow-inner"
+                  className="flex-1 bg-white/90 backdrop-blur-sm rounded-xl px-3 py-2 text-sm font-medium text-gray-800 focus:outline-none shadow-inner select-text"
+                  style={{ userSelect: 'text', WebkitUserSelect: 'text' }}
                   autoFocus
                   maxLength={100}
                 />
@@ -246,27 +258,34 @@ function TodoItem({ todo, level }: TodoItemProps) {
 
     {/* 메뉴 드롭다운을 포털로 렌더링 */}
     {showMenu && menuButtonRect && createPortal(
-      <motion.div
-        className="fixed bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-coral-200/50 p-2 min-w-32"
-        style={{
-          top: menuButtonRect.bottom + 4,
-          right: window.innerWidth - menuButtonRect.right,
-          zIndex: 9999
-        }}
-        initial={{ opacity: 0, scale: 0.95, y: -10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-      >
-        <button
-          onClick={() => {
-            deleteTodo(todo.id)
-            setShowMenu(false)
+      <>
+        <div
+          className="fixed inset-0"
+          style={{ zIndex: 9998 }}
+          onClick={() => setShowMenu(false)}
+        />
+        <motion.div
+          className="fixed bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-coral-200/50 p-2 min-w-32"
+          style={{
+            top: menuButtonRect.bottom + 4,
+            right: window.innerWidth - menuButtonRect.right,
+            zIndex: 9999
           }}
-          className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-100/80 text-red-600 text-sm transition-all"
+          initial={{ opacity: 0, scale: 0.95, y: -10 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.95, y: -10 }}
         >
-          🗑️ 삭제
-        </button>
-      </motion.div>,
+          <button
+            onClick={() => {
+              deleteTodo(todo.id)
+              setShowMenu(false)
+            }}
+            className="w-full text-left px-3 py-2 rounded-xl hover:bg-red-100/80 text-red-600 text-sm transition-all"
+          >
+            🗑️ 삭제
+          </button>
+        </motion.div>
+      </>,
       document.body
     )}
     </>

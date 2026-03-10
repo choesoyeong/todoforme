@@ -10,9 +10,10 @@ interface TodoStore {
   addChildTodo: (parentId: string, dateCreated: string) => void
   getTodosByDate: (date: string) => Todo[]
   getSortedTodos: (date: string, sortOption: SortOption) => Todo[]
+  reorderTodos: (date: string, reorderedIds: string[]) => void
   saveTodos: () => void
   loadTodos: () => void
-  copyIncompleteTodosFromYesterday: () => void
+  copyIncompleteTodosFromRecent: () => void
 }
 
 let nextId = 1
@@ -160,6 +161,19 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     }
   },
 
+  reorderTodos: (date, reorderedIds) => {
+    set(state => {
+      const updatedTodos = state.todos.map(todo => {
+        if (todo.dateCreated !== date || todo.parentId) return todo
+        const newOrder = reorderedIds.indexOf(todo.id)
+        if (newOrder === -1) return todo
+        return { ...todo, order: newOrder }
+      })
+      return { todos: updatedTodos }
+    })
+    get().saveTodos()
+  },
+
   saveTodos: async () => {
     try {
       if (window.electronAPI?.storage) {
@@ -189,29 +203,40 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
     }
   },
 
-  copyIncompleteTodosFromYesterday: () => {
+  copyIncompleteTodosFromRecent: () => {
     const now = new Date()
     const today = new Date(now.getTime() + (9 * 60 * 60 * 1000)).toISOString().split('T')[0]
-    const yesterday = new Date(now.getTime() + (9 * 60 * 60 * 1000) - (24 * 60 * 60 * 1000)).toISOString().split('T')[0]
 
-    // 어제의 미완료 할 일 (대기 상태)
-    const yesterdayIncompleteTodos = get().todos.filter(todo =>
-      todo.dateCreated === yesterday &&
-      todo.status === 'waiting'
-    )
+    // 이전 10일 중 미완료 업무가 있는 가장 최근 날짜를 찾기
+    let sourceDate: string | null = null
+    for (let i = 1; i <= 10; i++) {
+      const checkDate = new Date(now.getTime() + (9 * 60 * 60 * 1000) - (i * 24 * 60 * 60 * 1000)).toISOString().split('T')[0]
+      const hasIncomplete = get().todos.some(todo =>
+        todo.dateCreated === checkDate &&
+        todo.status === 'waiting' &&
+        !todo.parentId
+      )
+      if (hasIncomplete) {
+        sourceDate = checkDate
+        break
+      }
+    }
 
-    // 상위 할 일만 (parentId가 없는 것들)
-    const yesterdayTodos = yesterdayIncompleteTodos.filter(todo => !todo.parentId)
-
-    if (yesterdayTodos.length === 0) {
-      alert('복사할 어제 미완료 업무가 없습니다.')
+    if (!sourceDate) {
+      alert('최근 10일 내 미완료 업무가 없습니다.')
       return
     }
+
+    const incompleteTodos = get().todos.filter(todo =>
+      todo.dateCreated === sourceDate &&
+      todo.status === 'waiting' &&
+      !todo.parentId
+    )
 
     const todayTodos = get().todos.filter(todo => todo.dateCreated === today)
     const minOrder = todayTodos.length > 0 ? Math.min(...todayTodos.map(t => t.order)) : 1
 
-    const newTodos = yesterdayTodos.map((todo, index) => ({
+    const newTodos = incompleteTodos.map((todo, index) => ({
       id: generateId(),
       title: todo.title,
       emoji: todo.emoji,
@@ -220,14 +245,14 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
       dateCreated: today,
       children: [],
       category: todo.category,
-      order: minOrder - yesterdayTodos.length + index
+      order: minOrder - incompleteTodos.length + index
     }))
 
     set(state => ({
       todos: [...state.todos, ...newTodos]
     }))
 
-    alert(`${newTodos.length}개의 어제 미완료 업무를 복사했습니다.`)
+    alert(`${newTodos.length}개의 이전 미완료 업무를 복사했습니다.`)
     get().saveTodos()
   }
 }))

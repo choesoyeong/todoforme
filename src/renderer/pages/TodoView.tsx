@@ -1,8 +1,8 @@
 import React, { useState } from 'react'
-import { format, addDays, subDays } from 'date-fns'
+import { format, addDays, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay } from 'date-fns'
 import { ko } from 'date-fns/locale/ko'
 import { ChevronLeft, ChevronRight, ChevronDown, RotateCcw } from 'lucide-react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import TodoList from '../components/TodoList'
 import QuickAddTodo from '../components/QuickAddTodo'
 import { useTodoStore } from '../stores/todoStore'
@@ -12,7 +12,9 @@ function TodoView() {
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [sortOption, setSortOption] = useState<SortOption>('recommended')
   const [showSortDropdown, setShowSortDropdown] = useState(false)
-  const copyIncompleteTodosFromYesterday = useTodoStore(state => state.copyIncompleteTodosFromYesterday)
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(new Date())
+  const copyIncompleteTodosFromRecent = useTodoStore(state => state.copyIncompleteTodosFromRecent)
 
   const sortOptions = [
     { value: 'created' as SortOption, label: '등록순', emoji: '📝' },
@@ -28,8 +30,26 @@ function TodoView() {
     }
   }
 
+  const handleDateClick = () => {
+    setCalendarMonth(selectedDate)
+    setShowCalendar(!showCalendar)
+  }
+
+  const handleCalendarSelect = (date: Date) => {
+    setSelectedDate(date)
+    setShowCalendar(false)
+  }
+
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   const selectedDateString = format(selectedDate, 'yyyy-MM-dd')
+
+  // 달력 날짜 계산
+  const monthStart = startOfMonth(calendarMonth)
+  const monthEnd = endOfMonth(calendarMonth)
+  const calendarStart = startOfWeek(monthStart)
+  const calendarEnd = endOfWeek(monthEnd)
+  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+  const weekDays = ['일', '월', '화', '수', '목', '금', '토']
 
   return (
     <div className="h-full flex flex-col">
@@ -45,13 +65,93 @@ function TodoView() {
               <ChevronLeft size={20} />
             </button>
 
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-gray-800">
-                📅 {format(selectedDate, 'M월 d일 EEEE', { locale: ko })}
-              </h2>
-              {isToday && (
-                <span className="text-sm text-blue-600 font-medium mt-1 inline-block">오늘</span>
-              )}
+            <div className="text-center relative" style={{ WebkitAppRegion: 'no-drag' }}>
+              <button
+                onClick={handleDateClick}
+                className="hover:bg-white/20 rounded-xl px-3 py-1 transition-all"
+              >
+                <h2 className="text-2xl font-bold text-gray-800">
+                  📅 {format(selectedDate, 'M월 d일 EEEE', { locale: ko })}
+                </h2>
+                {isToday && (
+                  <span className="text-sm text-blue-600 font-medium mt-1 inline-block">오늘</span>
+                )}
+              </button>
+
+              {/* 달력 팝업 */}
+              <AnimatePresence>
+                {showCalendar && (
+                  <motion.div
+                    className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-coral-200/50 p-4 z-50 w-72"
+                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                    animate={{ opacity: 1, scale: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                  >
+                    {/* 달력 헤더 */}
+                    <div className="flex items-center justify-between mb-3">
+                      <button
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
+                        className="p-1 rounded-lg hover:bg-coral-50 transition-all"
+                      >
+                        <ChevronLeft size={16} />
+                      </button>
+                      <span className="text-sm font-bold text-gray-800">
+                        {format(calendarMonth, 'yyyy년 M월', { locale: ko })}
+                      </span>
+                      <button
+                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
+                        className="p-1 rounded-lg hover:bg-coral-50 transition-all"
+                      >
+                        <ChevronRight size={16} />
+                      </button>
+                    </div>
+
+                    {/* 요일 헤더 */}
+                    <div className="grid grid-cols-7 gap-1 mb-1">
+                      {weekDays.map(day => (
+                        <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
+                          {day}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* 날짜 그리드 */}
+                    <div className="grid grid-cols-7 gap-1">
+                      {calendarDays.map(day => {
+                        const isCurrentMonth = isSameMonth(day, calendarMonth)
+                        const isSelected = isSameDay(day, selectedDate)
+                        const isDayToday = isSameDay(day, new Date())
+
+                        return (
+                          <button
+                            key={day.toISOString()}
+                            onClick={() => handleCalendarSelect(day)}
+                            className={`text-xs p-1.5 rounded-lg transition-all ${
+                              isSelected
+                                ? 'bg-coral-400 text-white font-bold shadow-md'
+                                : isDayToday
+                                  ? 'bg-coral-100 text-coral-700 font-bold'
+                                  : isCurrentMonth
+                                    ? 'text-gray-700 hover:bg-coral-50'
+                                    : 'text-gray-300'
+                            }`}
+                          >
+                            {format(day, 'd')}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* 오늘 버튼 */}
+                    <button
+                      onClick={() => handleCalendarSelect(new Date())}
+                      className="w-full mt-3 py-1.5 text-xs font-medium text-coral-600 bg-coral-50 rounded-lg hover:bg-coral-100 transition-all"
+                    >
+                      오늘로 이동
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             <button
@@ -102,15 +202,15 @@ function TodoView() {
       <div className="px-6 pb-3">
         <QuickAddTodo selectedDate={format(selectedDate, 'yyyy-MM-dd')} />
 
-        {/* 어제 미완료 업무 불러오기 버튼 */}
+        {/* 이전 미완료 업무 불러오기 버튼 */}
         {isToday && (
           <div className="mt-3">
             <button
-              onClick={copyIncompleteTodosFromYesterday}
+              onClick={copyIncompleteTodosFromRecent}
               className="flex items-center gap-2 px-4 py-2 bg-coral-100/40 backdrop-blur-sm hover:bg-coral-100/60 text-coral-700 rounded-xl transition-all text-sm font-medium shadow-sm hover:shadow-md"
             >
               <RotateCcw size={16} />
-              <span>어제 미완료 업무 불러오기</span>
+              <span>이전 미완료 업무 불러오기</span>
             </button>
           </div>
         )}
@@ -120,6 +220,17 @@ function TodoView() {
       <div className="flex-1 min-h-0">
         <TodoList selectedDate={selectedDateString} sortOption={sortOption} />
       </div>
+
+      {/* 달력/드롭다운 닫기용 오버레이 */}
+      {(showCalendar || showSortDropdown) && (
+        <div
+          className="fixed inset-0 z-40"
+          onClick={() => {
+            setShowCalendar(false)
+            setShowSortDropdown(false)
+          }}
+        />
+      )}
     </div>
   )
 }
