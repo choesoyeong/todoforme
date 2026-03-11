@@ -44,4 +44,13 @@ export interface Category {
   deprecated?: boolean // 더 이상 사용하지 않는 카테고리 (기본값: false)
 }
 
+export interface Goal {
+  id: string
+  title: string
+  type: 'monthly' | 'weekly'
+  period: string // monthly: 'YYYY-MM', weekly: 'YYYY-MM-DD' (주 시작일)
+  completed: boolean
+  order: number
+}
+
 export type SortOption = 'created' | 'recommended' | 'category'

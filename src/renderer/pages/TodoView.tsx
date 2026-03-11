@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight, ChevronDown, RotateCcw } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TodoList from '../components/TodoList'
 import QuickAddTodo from '../components/QuickAddTodo'
+import GoalPanel from '../components/GoalPanel'
 import { useTodoStore } from '../stores/todoStore'
 import { SortOption } from '@shared/types'
 
@@ -42,6 +43,8 @@ function TodoView() {
 
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   const selectedDateString = format(selectedDate, 'yyyy-MM-dd')
+  const monthPeriod = format(selectedDate, 'yyyy-MM')
+  const weekPeriod = format(startOfWeek(selectedDate), 'yyyy-MM-dd')
 
   // 달력 날짜 계산
   const monthStart = startOfMonth(calendarMonth)
@@ -196,6 +199,11 @@ function TodoView() {
           </div>
 
         </div>
+      </div>
+
+      {/* 월간/주간 목표 */}
+      <div className="px-6 pt-3 pb-4">
+        <GoalPanel monthPeriod={monthPeriod} weekPeriod={weekPeriod} />
       </div>
 
       {/* 빠른 할 일 추가 */}

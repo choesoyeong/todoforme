@@ -7,6 +7,7 @@ const Store = require('electron-store')
 const store = new Store({
   defaults: {
     todos: [],
+    goals: [],
     categories: [],
     settings: {
       theme: 'pink',
@@ -21,6 +22,8 @@ const store = new Store({
 const storageAPI = {
   getTodos: () => store.get('todos', []),
   setTodos: (todos: any[]) => store.set('todos', todos),
+  getGoals: () => store.get('goals', []),
+  setGoals: (goals: any[]) => store.set('goals', goals),
   getCategories: () => store.get('categories', []),
   setCategories: (categories: any[]) => store.set('categories', categories),
   getSettings: () => store.get('settings'),
@@ -30,12 +33,14 @@ const storageAPI = {
   },
   exportData: () => ({
     todos: store.get('todos'),
+    goals: store.get('goals'),
     categories: store.get('categories'),
     settings: store.get('settings'),
     exportDate: new Date().toISOString()
   }),
-  importData: (data: { todos: any[], categories?: any[], settings?: any }) => {
+  importData: (data: { todos: any[], goals?: any[], categories?: any[], settings?: any }) => {
     if (data.todos) store.set('todos', data.todos)
+    if (data.goals) store.set('goals', data.goals)
     if (data.categories) store.set('categories', data.categories)
     if (data.settings) store.set('settings', data.settings)
   },
@@ -136,6 +141,8 @@ app.on('window-all-closed', () => {
 // IPC 핸들러 등록
 ipcMain.handle('storage:getTodos', () => storageAPI.getTodos())
 ipcMain.handle('storage:setTodos', (_, todos) => storageAPI.setTodos(todos))
+ipcMain.handle('storage:getGoals', () => storageAPI.getGoals())
+ipcMain.handle('storage:setGoals', (_, goals) => storageAPI.setGoals(goals))
 ipcMain.handle('storage:getCategories', () => storageAPI.getCategories())
 ipcMain.handle('storage:setCategories', (_, categories) => storageAPI.setCategories(categories))
 ipcMain.handle('storage:getSettings', () => storageAPI.getSettings())

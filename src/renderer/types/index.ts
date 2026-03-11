@@ -7,6 +7,8 @@ declare global {
       storage: {
         getTodos: () => Promise<any[]>
         setTodos: (todos: any[]) => Promise<void>
+        getGoals: () => Promise<any[]>
+        setGoals: (goals: any[]) => Promise<void>
         getSettings: () => Promise<any>
         setSetting: (key: string, value: any) => Promise<void>
         exportData: () => Promise<any>

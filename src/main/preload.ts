@@ -5,6 +5,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   storage: {
     getTodos: () => ipcRenderer.invoke('storage:getTodos'),
     setTodos: (todos: any) => ipcRenderer.invoke('storage:setTodos', todos),
+    getGoals: () => ipcRenderer.invoke('storage:getGoals'),
+    setGoals: (goals: any) => ipcRenderer.invoke('storage:setGoals', goals),
     getCategories: () => ipcRenderer.invoke('storage:getCategories'),
     setCategories: (categories: any) => ipcRenderer.invoke('storage:setCategories', categories),
     getSettings: () => ipcRenderer.invoke('storage:getSettings'),
