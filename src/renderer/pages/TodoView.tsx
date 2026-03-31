@@ -1,12 +1,15 @@
 import React, { useState } from 'react'
 import { format, addDays, subDays, startOfMonth, endOfMonth, startOfWeek, endOfWeek, eachDayOfInterval, isSameMonth, isSameDay } from 'date-fns'
 import { ko } from 'date-fns/locale/ko'
-import { ChevronLeft, ChevronRight, ChevronDown, RotateCcw } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import TodoList from '../components/TodoList'
 import QuickAddTodo from '../components/QuickAddTodo'
 import GoalPanel from '../components/GoalPanel'
 import { useTodoStore } from '../stores/todoStore'
+import { useStatsStore } from '../stores/statsStore'
+import { useCategoryStore } from '../stores/categoryStore'
+import { useThemeStore } from '../stores/themeStore'
 import { SortOption } from '@shared/types'
 
 function TodoView() {
@@ -16,6 +19,10 @@ function TodoView() {
   const [showCalendar, setShowCalendar] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(new Date())
   const copyIncompleteTodosFromRecent = useTodoStore(state => state.copyIncompleteTodosFromRecent)
+  const { theme } = useThemeStore()
+  const c = theme.colors
+  const { getStreak, calculateCompletionRate, getTopCategories } = useStatsStore()
+  const { categories } = useCategoryStore()
 
   const sortOptions = [
     { value: 'created' as SortOption, label: '등록순', emoji: '📝' },
@@ -24,11 +31,7 @@ function TodoView() {
   ]
 
   const navigateDate = (direction: 'prev' | 'next') => {
-    if (direction === 'prev') {
-      setSelectedDate(prev => subDays(prev, 1))
-    } else {
-      setSelectedDate(prev => addDays(prev, 1))
-    }
+    setSelectedDate(prev => direction === 'prev' ? subDays(prev, 1) : addDays(prev, 1))
   }
 
   const handleDateClick = () => {
@@ -44,200 +47,181 @@ function TodoView() {
   const isToday = format(selectedDate, 'yyyy-MM-dd') === format(new Date(), 'yyyy-MM-dd')
   const selectedDateString = format(selectedDate, 'yyyy-MM-dd')
   const monthPeriod = format(selectedDate, 'yyyy-MM')
-  const weekPeriod = format(startOfWeek(selectedDate), 'yyyy-MM-dd')
+  const weekPeriod = format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
 
-  // 달력 날짜 계산
-  const monthStart = startOfMonth(calendarMonth)
-  const monthEnd = endOfMonth(calendarMonth)
-  const calendarStart = startOfWeek(monthStart)
-  const calendarEnd = endOfWeek(monthEnd)
-  const calendarDays = eachDayOfInterval({ start: calendarStart, end: calendarEnd })
+  // Stats
+  const streak = getStreak(selectedDateString)
+  const completionRate = calculateCompletionRate(selectedDateString)
+
+  // Calendar
+  const mStart = startOfMonth(calendarMonth)
+  const mEnd = endOfMonth(calendarMonth)
+  const cStart = startOfWeek(mStart)
+  const cEnd = endOfWeek(mEnd)
+  const calendarDays = eachDayOfInterval({ start: cStart, end: cEnd })
   const weekDays = ['일', '월', '화', '수', '목', '금', '토']
+
+  // Categories for right panel (이번 주 기준, 월요일 시작)
+  const topCats = getTopCategories(
+    format(startOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd'),
+    format(endOfWeek(selectedDate, { weekStartsOn: 1 }), 'yyyy-MM-dd')
+  )
 
   return (
     <div className="h-full flex flex-col">
       {/* 헤더 */}
-      <div className="p-6 border-b border-white/20" style={{ WebkitAppRegion: 'drag', userSelect: 'none' }}>
+      <div className="drag-region" style={{ padding: '16px 24px 12px', borderBottom: `1px solid ${c.border}` }}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigateDate('prev')}
-              className="p-2 rounded-full hover:bg-white/20 transition-colors"
-              style={{ WebkitAppRegion: 'no-drag' }}
-            >
-              <ChevronLeft size={20} />
+          <div className="flex items-center gap-3 no-drag">
+            <button onClick={() => navigateDate('prev')} className="p-1.5 rounded-md transition-colors" style={{ color: c.textSecondary }}>
+              <ChevronLeft size={18} />
             </button>
-
-            <div className="text-center relative" style={{ WebkitAppRegion: 'no-drag' }}>
-              <button
-                onClick={handleDateClick}
-                className="hover:bg-white/20 rounded-xl px-3 py-1 transition-all"
-              >
-                <h2 className="text-2xl font-bold text-gray-800">
-                  📅 {format(selectedDate, 'M월 d일 EEEE', { locale: ko })}
-                </h2>
-                {isToday && (
-                  <span className="text-sm text-blue-600 font-medium mt-1 inline-block">오늘</span>
-                )}
+            <div className="relative">
+              <button onClick={handleDateClick} className="rounded-lg px-2 py-1 transition-colors" style={{ color: c.textPrimary }}>
+                <span className="text-xl font-bold" style={{ letterSpacing: '-0.02em' }}>
+                  {format(selectedDate, 'M월 d일 EEEE', { locale: ko })}
+                </span>
               </button>
+              {isToday && (
+                <span className="ml-2 text-xs px-2 py-0.5 rounded font-semibold" style={{ background: c.accentLight, color: c.accent }}>오늘</span>
+              )}
 
               {/* 달력 팝업 */}
               <AnimatePresence>
                 {showCalendar && (
                   <motion.div
-                    className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border border-coral-200/50 p-4 z-50 w-72"
-                    initial={{ opacity: 0, scale: 0.95, y: -10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                    className="absolute top-full mt-2 left-0 rounded-xl shadow-xl p-4 z-50 w-64"
+                    style={{ background: c.cardBg, border: `1px solid ${c.border}` }}
+                    initial={{ opacity: 0, y: -4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -4 }}
                   >
-                    {/* 달력 헤더 */}
                     <div className="flex items-center justify-between mb-3">
-                      <button
-                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}
-                        className="p-1 rounded-lg hover:bg-coral-50 transition-all"
-                      >
-                        <ChevronLeft size={16} />
-                      </button>
-                      <span className="text-sm font-bold text-gray-800">
-                        {format(calendarMonth, 'yyyy년 M월', { locale: ko })}
-                      </span>
-                      <button
-                        onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}
-                        className="p-1 rounded-lg hover:bg-coral-50 transition-all"
-                      >
-                        <ChevronRight size={16} />
-                      </button>
+                      <button onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} style={{ color: c.textSecondary }}><ChevronLeft size={14} /></button>
+                      <span className="text-xs font-bold" style={{ color: c.textPrimary }}>{format(calendarMonth, 'yyyy년 M월', { locale: ko })}</span>
+                      <button onClick={() => setCalendarMonth(prev => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))} style={{ color: c.textSecondary }}><ChevronRight size={14} /></button>
                     </div>
-
-                    {/* 요일 헤더 */}
                     <div className="grid grid-cols-7 gap-1 mb-1">
-                      {weekDays.map(day => (
-                        <div key={day} className="text-center text-xs font-medium text-gray-500 py-1">
-                          {day}
-                        </div>
-                      ))}
+                      {weekDays.map(d => <div key={d} className="text-center text-[10px] font-medium py-0.5" style={{ color: c.textMuted }}>{d}</div>)}
                     </div>
-
-                    {/* 날짜 그리드 */}
                     <div className="grid grid-cols-7 gap-1">
                       {calendarDays.map(day => {
-                        const isCurrentMonth = isSameMonth(day, calendarMonth)
-                        const isSelected = isSameDay(day, selectedDate)
-                        const isDayToday = isSameDay(day, new Date())
-
+                        const isCur = isSameMonth(day, calendarMonth)
+                        const isSel = isSameDay(day, selectedDate)
+                        const isT = isSameDay(day, new Date())
                         return (
-                          <button
-                            key={day.toISOString()}
-                            onClick={() => handleCalendarSelect(day)}
-                            className={`text-xs p-1.5 rounded-lg transition-all ${
-                              isSelected
-                                ? 'bg-coral-400 text-white font-bold shadow-md'
-                                : isDayToday
-                                  ? 'bg-coral-100 text-coral-700 font-bold'
-                                  : isCurrentMonth
-                                    ? 'text-gray-700 hover:bg-coral-50'
-                                    : 'text-gray-300'
-                            }`}
-                          >
-                            {format(day, 'd')}
-                          </button>
+                          <button key={day.toISOString()} onClick={() => handleCalendarSelect(day)}
+                            className="text-xs p-1 rounded-md transition-colors"
+                            style={{
+                              background: isSel ? c.accent : isT ? c.accentLight : 'transparent',
+                              color: isSel ? '#fff' : isT ? c.accentText : isCur ? c.textPrimary : c.textMuted,
+                              fontWeight: isSel || isT ? 700 : 400,
+                            }}
+                          >{format(day, 'd')}</button>
                         )
                       })}
                     </div>
-
-                    {/* 오늘 버튼 */}
-                    <button
-                      onClick={() => handleCalendarSelect(new Date())}
-                      className="w-full mt-3 py-1.5 text-xs font-medium text-coral-600 bg-coral-50 rounded-lg hover:bg-coral-100 transition-all"
-                    >
-                      오늘로 이동
-                    </button>
+                    <button onClick={() => handleCalendarSelect(new Date())}
+                      className="w-full mt-2 py-1 text-xs font-medium rounded-md transition-colors"
+                      style={{ color: c.accent, background: c.accentLight }}
+                    >오늘로 이동</button>
                   </motion.div>
                 )}
               </AnimatePresence>
             </div>
-
-            <button
-              onClick={() => navigateDate('next')}
-              className="p-2 rounded-full hover:bg-white/20 transition-colors"
-              style={{ WebkitAppRegion: 'no-drag' }}
-            >
-              <ChevronRight size={20} />
+            <button onClick={() => navigateDate('next')} className="p-1.5 rounded-md transition-colors" style={{ color: c.textSecondary }}>
+              <ChevronRight size={18} />
             </button>
           </div>
 
-          {/* 정렬 옵션 */}
-          <div className="relative" style={{ WebkitAppRegion: 'no-drag' }}>
-            <button
-              onClick={() => setShowSortDropdown(!showSortDropdown)}
-              className="flex items-center gap-2 px-4 py-2 bg-coral-100/40 backdrop-blur-sm rounded-xl hover:bg-coral-100/60 transition-all text-sm shadow-sm"
+          {/* 정렬 */}
+          <div className="relative no-drag">
+            <button onClick={() => setShowSortDropdown(!showSortDropdown)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+              style={{ background: c.btnBg, border: `1px solid ${c.btnBorder}`, color: c.textSecondary }}
             >
-              <span>{sortOptions.find(opt => opt.value === sortOption)?.emoji}</span>
-              <span>{sortOptions.find(opt => opt.value === sortOption)?.label}</span>
-              <ChevronDown size={16} className={`transition-transform ${showSortDropdown ? 'rotate-180' : ''}`} />
+              <span>{sortOptions.find(o => o.value === sortOption)?.emoji}</span>
+              <span>{sortOptions.find(o => o.value === sortOption)?.label}</span>
+              <ChevronDown size={12} />
             </button>
-
             {showSortDropdown && (
-              <div className="absolute right-0 top-full mt-2 bg-white/90 backdrop-blur-md rounded-xl shadow-2xl border border-coral-200/50 py-2 z-10 min-w-[140px]">
-                {sortOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    onClick={() => {
-                      setSortOption(option.value)
-                      setShowSortDropdown(false)
+              <div className="absolute right-0 top-full mt-1 rounded-lg shadow-xl py-1 z-10 min-w-[120px]"
+                style={{ background: c.dropdownBg, border: `1px solid ${c.border}`, backdropFilter: 'blur(12px)' }}
+              >
+                {sortOptions.map(opt => (
+                  <button key={opt.value} onClick={() => { setSortOption(opt.value); setShowSortDropdown(false) }}
+                    className="w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 transition-colors"
+                    style={{
+                      background: sortOption === opt.value ? c.accentLight : 'transparent',
+                      color: sortOption === opt.value ? c.accentText : c.textSecondary,
+                      fontWeight: sortOption === opt.value ? 600 : 400,
                     }}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-coral-50/80 flex items-center gap-2 transition-all ${
-                      sortOption === option.value ? 'bg-coral-100/80 text-coral-700 font-medium' : 'text-gray-700'
-                    }`}
-                  >
-                    <span>{option.emoji}</span>
-                    <span>{option.label}</span>
-                  </button>
+                  >{opt.emoji} {opt.label}</button>
                 ))}
               </div>
             )}
           </div>
-
         </div>
       </div>
 
-      {/* 월간/주간 목표 */}
-      <div className="px-6 pt-3 pb-4">
-        <GoalPanel monthPeriod={monthPeriod} weekPeriod={weekPeriod} />
-      </div>
-
-      {/* 빠른 할 일 추가 */}
-      <div className="px-6 pb-3">
-        <QuickAddTodo selectedDate={format(selectedDate, 'yyyy-MM-dd')} />
-
-        {/* 이전 미완료 업무 불러오기 버튼 */}
-        {isToday && (
-          <div className="mt-3">
-            <button
-              onClick={copyIncompleteTodosFromRecent}
-              className="flex items-center gap-2 px-4 py-2 bg-coral-100/40 backdrop-blur-sm hover:bg-coral-100/60 text-coral-700 rounded-xl transition-all text-sm font-medium shadow-sm hover:shadow-md"
-            >
-              <RotateCcw size={16} />
-              <span>이전 미완료 업무 불러오기</span>
-            </button>
+      {/* 메인 2단 레이아웃 */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* 왼쪽: 투두 */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div style={{ padding: '12px 20px 8px' }}>
+            <QuickAddTodo selectedDate={format(selectedDate, 'yyyy-MM-dd')} showCopyButton={isToday} onCopyIncomplete={copyIncompleteTodosFromRecent} />
           </div>
-        )}
+          <div className="flex-1 min-h-0">
+            <TodoList selectedDate={selectedDateString} sortOption={sortOption} />
+          </div>
+        </div>
+
+        {/* 오른쪽 패널 */}
+        <div className="overflow-y-auto flex-shrink-0" style={{ width: 240, borderLeft: `1px solid ${c.border}`, padding: 16 }}>
+          <div className="flex flex-col gap-5">
+            {/* 통계 */}
+            <div>
+              <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: c.textMuted, letterSpacing: '0.05em' }}>오늘의 현황</div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="rounded-lg p-2.5" style={{ background: c.cardHover, border: `1px solid ${c.borderLight}` }}>
+                  <div className="text-lg font-bold" style={{ color: c.green, fontFamily: "'SF Mono','Menlo',monospace" }}>{completionRate}%</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: c.textMuted }}>완수율</div>
+                </div>
+                <div className="rounded-lg p-2.5" style={{ background: c.cardHover, border: `1px solid ${c.borderLight}` }}>
+                  <div className="text-lg font-bold" style={{ color: c.accent, fontFamily: "'SF Mono','Menlo',monospace" }}>{streak}일</div>
+                  <div className="text-[10px] mt-0.5" style={{ color: c.textMuted }}>연속 달성</div>
+                </div>
+              </div>
+            </div>
+
+            {/* 목표 */}
+            <GoalPanel monthPeriod={monthPeriod} weekPeriod={weekPeriod} />
+
+            {/* 카테고리 */}
+            {topCats.length > 0 && (
+              <div>
+                <div className="text-[10px] font-semibold uppercase tracking-wider mb-2" style={{ color: c.textMuted, letterSpacing: '0.05em' }}>카테고리</div>
+                <div className="flex flex-col gap-1.5">
+                  {topCats.map((cat, i) => {
+                    const catObj = categories.find(ct => ct.name === cat.category)
+                    return (
+                      <div key={i} className="flex items-center gap-2 text-xs">
+                        <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: catObj?.color || '#9ca3af' }} />
+                        <span className="flex-1" style={{ color: c.textSecondary }}>{cat.category}</span>
+                        <span style={{ color: c.textMuted, fontFamily: "'SF Mono','Menlo',monospace", fontSize: 11 }}>{cat.count}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* 투두 리스트 */}
-      <div className="flex-1 min-h-0">
-        <TodoList selectedDate={selectedDateString} sortOption={sortOption} />
-      </div>
-
-      {/* 달력/드롭다운 닫기용 오버레이 */}
+      {/* 오버레이 */}
       {(showCalendar || showSortDropdown) && (
-        <div
-          className="fixed inset-0 z-40"
-          onClick={() => {
-            setShowCalendar(false)
-            setShowSortDropdown(false)
-          }}
-        />
+        <div className="fixed inset-0 z-40" onClick={() => { setShowCalendar(false); setShowSortDropdown(false) }} />
       )}
     </div>
   )

@@ -257,7 +257,14 @@ export const useTodoStore = create<TodoStore>((set, get) => ({
   }
 }))
 
-// 앱 시작 시 데이터 로드
+// 앱 시작 시 데이터 로드 + 트레이 추가 리스너
 if (typeof window !== 'undefined') {
   useTodoStore.getState().loadTodos()
+
+  // 트레이에서 할일 추가 시 스토어 새로고침
+  if ((window as any).electronAPI?.onTodosUpdated) {
+    (window as any).electronAPI.onTodosUpdated(() => {
+      useTodoStore.getState().loadTodos()
+    })
+  }
 }

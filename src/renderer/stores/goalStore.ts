@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { Goal } from '@shared/types'
+import { startOfWeek, endOfWeek, parseISO, isWithinInterval } from 'date-fns'
 
 interface GoalStore {
   goals: Goal[]
@@ -56,6 +57,19 @@ export const useGoalStore = create<GoalStore>((set, get) => ({
   },
 
   getGoalsByPeriod: (type, period) => {
+    if (type === 'weekly') {
+      // period(월요일 시작)가 속한 주에 해당하는 모든 주간 목표를 찾기
+      // 기존 데이터가 일요일 시작으로 저장되어 있을 수 있으므로 범위로 매칭
+      const weekStart = startOfWeek(parseISO(period), { weekStartsOn: 1 })
+      const weekEnd = endOfWeek(parseISO(period), { weekStartsOn: 1 })
+      return get().goals
+        .filter(g => {
+          if (g.type !== type) return false
+          const goalDate = parseISO(g.period)
+          return isWithinInterval(goalDate, { start: weekStart, end: weekEnd })
+        })
+        .sort((a, b) => a.order - b.order)
+    }
     return get().goals
       .filter(g => g.type === type && g.period === period)
       .sort((a, b) => a.order - b.order)

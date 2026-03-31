@@ -1,8 +1,9 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Edit3, Trash2, Palette, Archive, ArchiveRestore } from 'lucide-react'
+import { Plus, PenLine, Trash2, ArchiveX, ArchiveRestore, Tag, X } from 'lucide-react'
 import { Category } from '@shared/types'
 import { useCategoryStore } from '../stores/categoryStore'
+import { useThemeStore } from '../stores/themeStore'
 
 const defaultColors = [
   '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
@@ -10,245 +11,162 @@ const defaultColors = [
   '#F0E68C', '#FFA07A', '#20B2AA', '#BA55D3', '#FF7F50'
 ]
 
+async function loadKeywords(): Promise<Record<string, string[]>> {
+  try {
+    if (window.electronAPI?.storage) return await window.electronAPI.storage.getCategoryKeywords() || {}
+    const saved = localStorage.getItem('categoryKeywords')
+    if (saved) return JSON.parse(saved)
+  } catch {}
+  return {}
+}
+
+function saveKeywords(keywords: Record<string, string[]>) {
+  if (window.electronAPI?.storage) window.electronAPI.storage.setCategoryKeywords(keywords)
+  else localStorage.setItem('categoryKeywords', JSON.stringify(keywords))
+}
+
 function CategoryView() {
   const { categories, addCategory, updateCategory, deleteCategory } = useCategoryStore()
+  const { theme } = useThemeStore()
+  const c = theme.colors
   const [isAdding, setIsAdding] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [formData, setFormData] = useState({ name: '', color: '#FF6B6B' })
+  const [allKeywords, setAllKeywords] = useState<Record<string, string[]>>({})
+  const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [keywordInput, setKeywordInput] = useState('')
+  const [isComposing, setIsComposing] = useState(false)
+
+  useEffect(() => { loadKeywords().then(setAllKeywords) }, [])
+
+  const addKeyword = (catName: string) => {
+    const kw = keywordInput.trim()
+    if (!kw) return
+    const updated = { ...allKeywords }; const existing = updated[catName] || []
+    if (existing.includes(kw)) { setKeywordInput(''); return }
+    updated[catName] = [...existing, kw]; setAllKeywords(updated); saveKeywords(updated); setKeywordInput('')
+  }
+
+  const removeKeyword = (catName: string, keyword: string) => {
+    const updated = { ...allKeywords }; updated[catName] = (updated[catName] || []).filter(k => k !== keyword)
+    if (updated[catName].length === 0) delete updated[catName]; setAllKeywords(updated); saveKeywords(updated)
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!formData.name.trim()) return
-
+    e.preventDefault(); if (!formData.name.trim()) return
     if (editingId) {
-      updateCategory(editingId, formData)
-      setEditingId(null)
-    } else {
-      addCategory(formData)
-      setIsAdding(false)
-    }
-    
+      const old = categories.find(ct => ct.id === editingId)
+      if (old && old.name !== formData.name.trim() && allKeywords[old.name]) {
+        const updated = { ...allKeywords }; updated[formData.name.trim()] = updated[old.name]; delete updated[old.name]; setAllKeywords(updated); saveKeywords(updated)
+      }
+      updateCategory(editingId, formData); setEditingId(null)
+    } else { addCategory(formData); setIsAdding(false) }
     setFormData({ name: '', color: '#FF6B6B' })
-  }
-
-  const startEdit = (category: Category) => {
-    setFormData({ name: category.name, color: category.color })
-    setEditingId(category.id)
-    setIsAdding(false)
-  }
-
-  const startAdd = () => {
-    setFormData({ name: '', color: '#FF6B6B' })
-    setEditingId(null)
-    setIsAdding(true)
-  }
-
-  const cancelEdit = () => {
-    setIsAdding(false)
-    setEditingId(null)
-    setFormData({ name: '', color: '#FF6B6B' })
-  }
-
-  const handleDelete = (id: string) => {
-    if (confirm('이 카테고리를 삭제하시겠습니까?')) {
-      deleteCategory(id)
-    }
-  }
-
-  const handleToggleDeprecated = (category: Category) => {
-    updateCategory(category.id, { 
-      ...category, 
-      deprecated: !category.deprecated 
-    })
   }
 
   return (
     <div className="h-full flex flex-col">
-      {/* 헤더 */}
-      <div className="p-6 border-b border-white/20">
+      <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
         <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">🏷️ 카테고리 관리</h2>
-            <p className="text-gray-600 mt-1">투두에 사용할 카테고리를 관리하세요</p>
-          </div>
-          <motion.button
-            onClick={startAdd}
-            className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex items-center gap-2"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <Plus size={18} />
-            새 카테고리
-          </motion.button>
+          <h2 className="text-xl font-bold" style={{ color: c.textPrimary, letterSpacing: '-0.02em' }}>카테고리</h2>
+          <button onClick={() => { setFormData({ name: '', color: '#FF6B6B' }); setEditingId(null); setIsAdding(true) }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors"
+            style={{ background: c.accent, color: '#fff' }}>
+            <Plus size={14} /> 새 카테고리
+          </button>
         </div>
       </div>
 
-      {/* 카테고리 폼 */}
+      {/* 추가/수정 폼 */}
       {(isAdding || editingId) && (
-        <motion.div
-          className="p-6 bg-white/50 border-b border-white/20"
-          initial={{ height: 0, opacity: 0 }}
-          animate={{ height: 'auto', opacity: 1 }}
-          exit={{ height: 0, opacity: 0 }}
-        >
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  카테고리 이름
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="카테고리 이름을 입력하세요"
-                  className="w-full px-3 py-2 border-2 border-gray-200 rounded-lg focus:border-blue-400 focus:outline-none"
-                  autoFocus
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  색상
-                </label>
-                <div className="flex items-center gap-2">
-                  <div
-                    className="w-10 h-10 rounded-lg border-2 border-gray-200"
-                    style={{ backgroundColor: formData.color }}
-                  />
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                    className="w-10 h-10 rounded-lg border-2 border-gray-200 cursor-pointer"
-                  />
-                </div>
-              </div>
+        <div className="p-6" style={{ borderBottom: `1px solid ${c.border}` }}>
+          <form onSubmit={handleSubmit} className="space-y-3">
+            <div className="flex gap-3">
+              <input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
+                placeholder="카테고리 이름" autoFocus
+                className="flex-1 px-3 py-2 rounded-md text-sm outline-none"
+                style={{ background: c.cardHover, border: `1px solid ${c.border}`, color: c.textPrimary }} />
+              <input type="color" value={formData.color} onChange={e => setFormData({ ...formData, color: e.target.value })}
+                className="w-10 h-10 rounded-md cursor-pointer" style={{ border: `1px solid ${c.border}` }} />
             </div>
-            
-            {/* 미리 정의된 색상들 */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                빠른 색상 선택
-              </label>
-              <div className="flex flex-wrap gap-2">
-                {defaultColors.map((color) => (
-                  <button
-                    key={color}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, color })}
-                    className={`w-8 h-8 rounded-lg border-2 transition-all ${
-                      formData.color === color ? 'border-gray-400 scale-110' : 'border-gray-200 hover:scale-105'
-                    }`}
-                    style={{ backgroundColor: color }}
-                  />
-                ))}
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {defaultColors.map(color => (
+                <button key={color} type="button" onClick={() => setFormData({ ...formData, color })}
+                  className="w-6 h-6 rounded" style={{ background: color, border: formData.color === color ? `2px solid ${c.textPrimary}` : '2px solid transparent' }} />
+              ))}
             </div>
-
             <div className="flex gap-2">
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors"
-              >
-                {editingId ? '수정' : '추가'}
-              </button>
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
-              >
-                취소
-              </button>
+              <button type="submit" className="px-3 py-1.5 rounded-md text-xs font-medium" style={{ background: c.accent, color: '#fff' }}>{editingId ? '수정' : '추가'}</button>
+              <button type="button" onClick={() => { setIsAdding(false); setEditingId(null) }}
+                className="px-3 py-1.5 rounded-md text-xs font-medium" style={{ background: c.cardHover, color: c.textSecondary, border: `1px solid ${c.border}` }}>취소</button>
             </div>
           </form>
-        </motion.div>
+        </div>
       )}
 
       {/* 카테고리 목록 */}
       <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          <AnimatePresence>
-            {categories.map((category) => (
-              <motion.div
-                key={category.id}
-                className={`backdrop-blur-lg rounded-2xl border-2 p-4 hover:shadow-lg transition-all ${
-                  category.deprecated 
-                    ? 'bg-gray-100/60 border-gray-200/50 opacity-70' 
-                    : 'bg-white/60 border-white/30'
-                }`}
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                layout
-              >
-                <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          {categories.map(category => {
+            const keywords = allKeywords[category.name] || []
+            const isExpanded = expandedId === category.id
+            return (
+              <div key={category.id} className="rounded-lg transition-colors" style={{ border: `1px solid ${c.border}`, opacity: category.deprecated ? 0.5 : 1 }}>
+                <div className="flex items-center justify-between p-3">
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-6 h-6 rounded-full border-2 border-white"
-                      style={{ backgroundColor: category.color }}
-                    />
-                    <div className="flex flex-col">
-                      <span className={`font-medium ${category.deprecated ? 'text-gray-500' : 'text-gray-800'}`}>
-                        {category.name}
-                      </span>
-                      {category.deprecated && (
-                        <span className="text-xs text-gray-400">사용 중단됨</span>
-                      )}
+                    <div className="w-4 h-4 rounded-full" style={{ background: category.color }} />
+                    <div>
+                      <span className="text-sm font-medium" style={{ color: c.textPrimary }}>{category.name}</span>
+                      {category.deprecated && <span className="text-[10px] ml-2" style={{ color: c.textMuted }}>중단됨</span>}
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <button
-                      onClick={() => handleToggleDeprecated(category)}
-                      className={`p-2 rounded-lg transition-colors ${
-                        category.deprecated
-                          ? 'hover:bg-green-100 text-green-600'
-                          : 'hover:bg-orange-100 text-orange-600'
-                      }`}
-                      title={category.deprecated ? '사용 재개' : '사용 중단'}
-                    >
-                      {category.deprecated ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                    <button onClick={() => { setExpandedId(isExpanded ? null : category.id); setKeywordInput('') }}
+                      className="p-1.5 rounded transition-colors" style={{ color: isExpanded ? c.accent : c.textMuted }}><Tag size={12} /></button>
+                    <button onClick={() => updateCategory(category.id, { ...category, deprecated: !category.deprecated })}
+                      className="p-1.5 rounded transition-colors" style={{ color: c.textMuted }}>
+                      {category.deprecated ? <ArchiveRestore size={12} /> : <ArchiveX size={12} />}
                     </button>
-                    <button
-                      onClick={() => startEdit(category)}
-                      className="p-2 rounded-lg hover:bg-white/50 transition-colors text-gray-600"
-                    >
-                      <Edit3 size={14} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(category.id)}
-                      className="p-2 rounded-lg hover:bg-red-100 transition-colors text-red-600"
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <button onClick={() => { setFormData({ name: category.name, color: category.color }); setEditingId(category.id); setIsAdding(false) }}
+                      className="p-1.5 rounded transition-colors" style={{ color: c.textMuted }}><PenLine size={12} /></button>
+                    <button onClick={() => { if (confirm('삭제하시겠습니까?')) deleteCategory(category.id) }}
+                      className="p-1.5 rounded transition-colors text-red-500"><Trash2 size={12} /></button>
                   </div>
                 </div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
 
-        {categories.length === 0 && !isAdding && (
-          <motion.div
-            className="flex flex-col items-center justify-center h-64 text-center"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-          >
-            <div className="text-6xl mb-4">🏷️</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">
-              카테고리가 없어요!
-            </h3>
-            <p className="text-gray-500 mb-4">
-              투두를 분류할 카테고리를 추가해보세요
-            </p>
-            <button
-              onClick={startAdd}
-              className="px-4 py-2 bg-blue-500 text-white rounded-xl hover:bg-blue-600 transition-colors flex items-center gap-2"
-            >
-              <Plus size={18} />
-              첫 카테고리 만들기
-            </button>
-          </motion.div>
-        )}
+                <AnimatePresence>
+                  {isExpanded && (
+                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                      <div className="px-3 pb-3 pt-1" style={{ borderTop: `1px solid ${c.borderLight}` }}>
+                        <div className="text-[10px] mb-2" style={{ color: c.textMuted }}>자동 분류 키워드</div>
+                        <div className="flex flex-wrap gap-1 mb-2">
+                          {keywords.map(kw => (
+                            <span key={kw} className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded"
+                              style={{ background: category.color + '20', color: c.textSecondary }}>
+                              {kw}
+                              <button onClick={() => removeKeyword(category.name, kw)}><X size={10} /></button>
+                            </span>
+                          ))}
+                          {keywords.length === 0 && <span className="text-[10px]" style={{ color: c.textMuted }}>키워드 없음</span>}
+                        </div>
+                        <div className="flex gap-1">
+                          <input value={keywordInput} onChange={e => setKeywordInput(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter' && !e.nativeEvent.isComposing && !isComposing) { e.preventDefault(); addKeyword(category.name) } }}
+                            onCompositionStart={() => setIsComposing(true)} onCompositionEnd={() => setIsComposing(false)}
+                            placeholder="키워드 입력 후 Enter" className="flex-1 px-2 py-1 text-[11px] rounded outline-none"
+                            style={{ background: c.cardHover, border: `1px solid ${c.border}`, color: c.textPrimary }} />
+                          <button onClick={() => addKeyword(category.name)} disabled={!keywordInput.trim()}
+                            className="px-2 py-1 text-[11px] rounded disabled:opacity-30"
+                            style={{ background: c.cardHover, color: c.textSecondary }}>추가</button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
